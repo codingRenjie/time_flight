@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Time Flight</title>
+  </head>
+  <body style="margin:0;background:#ffcc00;color:#111;font:22px/1.5 -apple-system,sans-serif;padding:24px">
+    <p id="tf-static">正在打开 Time Flight…</p>
+    <div id="root"></div>
+    <script>
+      (function () {
+        var msg = document.getElementById('tf-static');
+        function fail(reason) {
+          msg.style.background = '#fff';
+          msg.textContent = '加载失败：' + reason;
+        }
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = '/assets/app.css?v=15';
+        css.onerror = function () {
+          fail('样式文件没下来');
+        };
+        document.head.appendChild(css);
+
+        var s = document.createElement('script');
+        s.type = 'module';
+        s.src = '/assets/app.js?v=15';
+        s.onerror = function () {
+          fail('脚本文件没下来');
+        };
+        document.body.appendChild(s);
+      })();
+    </script>
+  </body>
+</html>

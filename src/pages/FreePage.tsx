@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { formatRemainingMinutes, roundMinutes } from '@/lib/time';
+import { CancelVoyageButton } from '@/pages/CancelledPage';
 
 export function FreePage() {
   const { session, blocks, finishFreeFly } = useApp();
@@ -47,6 +48,7 @@ export function FreePage() {
           结束自由飞 · 准备进港
         </button>
       </div>
+      <CancelVoyageButton />
     </div>
   );
 }

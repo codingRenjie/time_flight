@@ -10,76 +10,48 @@ export function EveningPage() {
   const { settings, updateSettings } = useApp();
   const { drafts, setDrafts, overflowMinutes } = useEveningPlan();
   const navigate = useNavigate();
-  const [pool, setPool] = useState(() =>
-    settings.templates
-      .filter((t) => t.isEnabled)
-      .map((t) => ({
-        id: t.id,
-        type: t.type,
-        title: t.title,
-        minutes: t.defaultDurationMinutes,
-        isDeletable: t.isDeletable,
-      })),
-  );
   const [newTitle, setNewTitle] = useState('');
   const [newMinutes, setNewMinutes] = useState(20);
 
-  const inPlanIds = new Set(drafts.map((d) => d.templateId));
-
-  const togglePlan = (item: (typeof pool)[number]) => {
-    if (item.type === 'mandatory' || item.type === 'break') return;
-    if (inPlanIds.has(item.id)) {
-      setDrafts((d) => d.filter((x) => x.templateId !== item.id));
-      return;
-    }
-    const minutes = Math.min(120, Math.max(1, Math.round(item.minutes) || 1));
-    const tpl: BlockTemplate = {
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      defaultDurationMinutes: minutes,
-      minimumDurationMinutes: minutes,
-      isDeletable: item.isDeletable,
-      isEnabled: true,
-    };
-    setDrafts((d) => [...d, templateToDraft(tpl)]);
-  };
-
-  const setPoolMinutes = (id: string, raw: string) => {
+  const setDraftMinutes = (templateId: string, raw: string) => {
     const minutes = raw === '' ? 0 : Number(raw);
-    setPool((p) => p.map((x) => (x.id === id ? { ...x, minutes } : x)));
-  };
-
-  const commitPoolMinutes = (id: string, minutes: number) => {
-    const next = Math.min(120, Math.max(1, Math.round(minutes) || 1));
-    setPool((p) => p.map((x) => (x.id === id ? { ...x, minutes: next } : x)));
     setDrafts((d) =>
       d.map((x) =>
-        x.templateId === id
+        x.templateId === templateId
+          ? { ...x, plannedDurationMinutes: minutes, minimumDurationMinutes: minutes }
+          : x,
+      ),
+    );
+  };
+
+  const commitDraftMinutes = (templateId: string, minutes: number) => {
+    const next = Math.min(120, Math.max(1, Math.round(minutes) || 1));
+    setDrafts((d) =>
+      d.map((x) =>
+        x.templateId === templateId
           ? { ...x, plannedDurationMinutes: next, minimumDurationMinutes: next }
           : x,
       ),
     );
     const templates = settings.templates.map((t) =>
-      t.id === id ? { ...t, defaultDurationMinutes: next, minimumDurationMinutes: next } : t,
+      t.id === templateId ? { ...t, defaultDurationMinutes: next, minimumDurationMinutes: next } : t,
     );
-    if (settings.templates.some((t) => t.id === id)) {
+    if (settings.templates.some((t) => t.id === templateId)) {
       void updateSettings({ ...settings, templates });
     }
   };
 
-  const removePoolTask = (id: string) => {
-    const item = pool.find((x) => x.id === id);
+  const removeTask = (templateId: string) => {
+    const item = drafts.find((x) => x.templateId === templateId);
     if (!item?.isDeletable || item.type === 'mandatory' || item.type === 'break') return;
-    setPool((p) => p.filter((x) => x.id !== id));
-    setDrafts((d) => d.filter((x) => x.templateId !== id));
+    setDrafts((d) => d.filter((x) => x.templateId !== templateId));
     void updateSettings({
       ...settings,
-      templates: settings.templates.filter((t) => t.id !== id),
+      templates: settings.templates.filter((t) => t.id !== templateId),
     });
   };
 
-  const createPoolTask = async () => {
+  const addTask = async () => {
     const title = newTitle.trim();
     if (!title) return;
     const minutes = Math.min(120, Math.max(1, Math.round(Number(newMinutes)) || 20));
@@ -93,10 +65,7 @@ export function EveningPage() {
       isEnabled: true,
     };
     await updateSettings({ ...settings, templates: [...settings.templates, tpl] });
-    setPool((p) => [
-      ...p,
-      { id: tpl.id, type: tpl.type, title, minutes, isDeletable: true },
-    ]);
+    setDrafts((d) => [...d, templateToDraft(tpl)]);
     setNewTitle('');
     setNewMinutes(20);
   };
@@ -107,54 +76,42 @@ export function EveningPage() {
 
       <section className="card task-pool">
         <h3 style={{ marginTop: 0, marginBottom: 4 }}>执飞任务池</h3>
-        <p className="route-hint">改时长，点加入或移出。带绿色勾的就是今晚要飞的。</p>
+        <p className="route-hint">这里的任务都会飞。改时长；学习块可点右上角 × 删除。</p>
         <div className="pool-grid">
-          {pool.map((item) => {
-            const inPlan = inPlanIds.has(item.id);
-            return (
-              <div key={item.id} className={`pool-card${inPlan ? ' in-plan' : ''}`}>
-                {item.isDeletable && item.type !== 'mandatory' && item.type !== 'break' && (
-                  <button
-                    type="button"
-                    className="pool-delete"
-                    aria-label={`删除 ${item.title}`}
-                    onClick={() => removePoolTask(item.id)}
-                  >
-                    ×
-                  </button>
-                )}
-                <div className="pool-title">
-                  <span className="pool-name-text">{item.title}</span>
-                  {inPlan && (
-                    <span className="pool-in-plan" aria-label="已在今天的航程里">
-                      ✓
-                    </span>
-                  )}
-                  {item.type === 'break' && <span className="badge pool-flag">刚性</span>}
-                  {item.type === 'mandatory' && <span className="badge pool-flag">必做</span>}
-                </div>
-                <label className="pool-time">
-                  <input
-                    type="number"
-                    min={1}
-                    max={120}
-                    inputMode="numeric"
-                    value={item.minutes || ''}
-                    onChange={(e) => setPoolMinutes(item.id, e.target.value)}
-                    onBlur={() => commitPoolMinutes(item.id, item.minutes)}
-                  />
-                  <span>分钟</span>
-                </label>
-                {item.type === 'mandatory' || item.type === 'break' ? (
-                  <p className="pool-locked">不可移除</p>
-                ) : (
-                  <button className="btn btn-secondary btn-block" onClick={() => togglePlan(item)}>
-                    {inPlan ? '移出航程' : '加入航程'}
-                  </button>
-                )}
+          {drafts.map((item) => (
+            <div key={item.id} className="pool-card">
+              {item.isDeletable && item.type !== 'mandatory' && item.type !== 'break' && (
+                <button
+                  type="button"
+                  className="pool-delete"
+                  aria-label={`删除 ${item.title}`}
+                  onClick={() => removeTask(item.templateId)}
+                >
+                  ×
+                </button>
+              )}
+              <div className="pool-title">
+                <span className="pool-name-text">{item.title}</span>
+                {item.type === 'break' && <span className="badge pool-flag">刚性</span>}
+                {item.type === 'mandatory' && <span className="badge pool-flag">必做</span>}
               </div>
-            );
-          })}
+              <label className="pool-time">
+                <input
+                  type="number"
+                  min={1}
+                  max={120}
+                  inputMode="numeric"
+                  value={item.plannedDurationMinutes || ''}
+                  onChange={(e) => setDraftMinutes(item.templateId, e.target.value)}
+                  onBlur={() => commitDraftMinutes(item.templateId, item.plannedDurationMinutes)}
+                />
+                <span>分钟</span>
+              </label>
+              {(item.type === 'mandatory' || item.type === 'break') && (
+                <p className="pool-locked">不可移除</p>
+              )}
+            </div>
+          ))}
           <div className="pool-card is-new">
             <div className="pool-title">新建任务</div>
             <input
@@ -178,9 +135,9 @@ export function EveningPage() {
             <button
               className="btn btn-secondary btn-block"
               disabled={!newTitle.trim()}
-              onClick={() => void createPoolTask()}
+              onClick={() => void addTask()}
             >
-              放入任务池
+              加入航程
             </button>
           </div>
         </div>
@@ -191,7 +148,7 @@ export function EveningPage() {
           disabled={overflowMinutes > 0}
           onClick={() => navigate('/evening/order')}
         >
-          {overflowMinutes > 0 ? '时间已超出，请先调整' : '确认任务清单'}
+          {overflowMinutes > 0 ? '时间已超出，请先调整' : '确认执飞任务'}
         </button>
       </section>
     </div>

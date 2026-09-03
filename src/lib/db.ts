@@ -6,7 +6,7 @@ import type {
   EveningSession,
   MorningQueueItem,
 } from '@/types';
-import { DEFAULT_SETTINGS } from '@/lib/defaults';
+import { DEFAULT_SETTINGS, LEGACY_STUDY_TEMPLATE_IDS } from '@/lib/defaults';
 
 interface TimeFlightDB extends DBSchema {
   settings: { key: string; value: AppSettings };
@@ -39,11 +39,22 @@ export async function loadSettings(): Promise<AppSettings> {
     await db.put('settings', DEFAULT_SETTINGS, 'app');
     return structuredClone(DEFAULT_SETTINGS);
   }
-  return {
+  const raw = stored.templates?.length ? stored.templates : DEFAULT_SETTINGS.templates;
+  const templates = raw
+    .filter((t) => !LEGACY_STUDY_TEMPLATE_IDS.has(t.id))
+    .map((t) => (t.title === '水果经停' || t.id === 'tpl-fruit' ? { ...t, title: '吃水果' } : t));
+  const next = {
     ...DEFAULT_SETTINGS,
     ...stored,
-    templates: stored.templates?.length ? stored.templates : DEFAULT_SETTINGS.templates,
+    templates,
   };
+  const shouldPersist =
+    stored.templates?.some((t) => t.title === '水果经停' || LEGACY_STUDY_TEMPLATE_IDS.has(t.id)) ??
+    false;
+  if (shouldPersist) {
+    await db.put('settings', next, 'app');
+  }
+  return next;
 }
 
 function normalizeSession(session: EveningSession): EveningSession {
@@ -61,6 +72,8 @@ function normalizeBlock(block: Block): Block {
     ...block,
     activeBudgetMinutes: block.activeBudgetMinutes ?? null,
     remainingBudgetMinutes: block.remainingBudgetMinutes ?? block.plannedDurationMinutes,
+    markedIncomplete: block.markedIncomplete ?? false,
+    originalPlannedMinutes: block.originalPlannedMinutes ?? block.plannedDurationMinutes,
   };
 }
 

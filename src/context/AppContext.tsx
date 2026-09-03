@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { AppSettings, Block, EveningSession, Mood, MorningQueueItem, PlanBlockDraft } from '@/types';
 import { loadFullState, persistState, saveSettings, clearTodaySession } from '@/lib/db';
+import { keepFixedModuleSettings } from '@/lib/defaults';
 import { getBlockOvertimeMinutes } from '@/lib/time';
 import {
   advanceToNextBlock,
@@ -18,6 +19,7 @@ import {
   createSessionFromPlan,
   extendVoyage,
   finishDay,
+  cancelVoyage as markVoyageCancelled,
   landBlock,
   markSecondIncompleteAfterPriority,
   needsPrioritySelection,
@@ -34,13 +36,16 @@ interface AppContextValue {
   updateSettings: (settings: AppSettings) => Promise<void>;
   confirmRoute: (drafts: PlanBlockDraft[]) => Promise<void>;
   landCurrentBlock: (queueNote?: string) => Promise<{ needsPriority: Block[] }>;
+  toggleCurrentIncomplete: () => Promise<void>;
   applyPriorityOrder: (orderedIds: string[], firstId: string) => Promise<void>;
   extendVoyage: () => Promise<boolean>;
   setMood: (mood: Mood) => Promise<void>;
   resetToday: () => Promise<void>;
+  planEpoch: number;
   tickFlying: () => Promise<void>;
   finishFreeFly: () => Promise<void>;
   dismissCheckpoint: () => Promise<void>;
+  cancelVoyage: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -51,6 +56,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<EveningSession | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [morningQueue, setMorningQueue] = useState<MorningQueueItem[]>([]);
+  const [planEpoch, setPlanEpoch] = useState(0);
 
   const refresh = useCallback(async () => {
     const state = await loadFullState();
@@ -129,6 +135,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [session, blocks, morningQueue, saveAll],
   );
 
+  const toggleCurrentIncomplete = useCallback(async () => {
+    if (!session) return;
+    const current = blocks.find((b) => b.id === session.currentBlockId);
+    if (!current || current.status !== 'flying') return;
+    const nextBlocks = blocks.map((b) =>
+      b.id === current.id ? { ...b, markedIncomplete: !b.markedIncomplete } : b,
+    );
+    await saveAll(session, nextBlocks, morningQueue);
+  }, [session, blocks, morningQueue, saveAll]);
+
   const applyPriorityOrder = useCallback(
     async (orderedIds: string[], firstId: string) => {
       if (!session) return;
@@ -192,9 +208,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const resetToday = useCallback(async () => {
+    const state = await loadFullState();
+    await saveSettings(keepFixedModuleSettings(state.settings));
     await clearTodaySession();
     await refresh();
+    setPlanEpoch((n) => n + 1);
   }, [refresh]);
+
+  const cancelVoyage = useCallback(async () => {
+    if (!session || session.status === 'dayEnd' || session.status === 'cancelled') return;
+    await saveAll(markVoyageCancelled(session), blocks, morningQueue);
+  }, [session, blocks, morningQueue, saveAll]);
 
   const finishFreeFly = useCallback(async () => {
     if (!session) return;
@@ -213,7 +237,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [session, blocks, morningQueue, saveAll]);
 
   const tickFlying = useCallback(async () => {
-    if (!session || session.status === 'dayEnd' || session.checkpoint) return;
+    if (!session || session.status === 'dayEnd' || session.status === 'cancelled' || session.checkpoint) return;
     if (checkWindowEnd(session)) {
       await saveAll(finishDay(session), blocks, morningQueue);
       return;
@@ -259,13 +283,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateSettings,
       confirmRoute,
       landCurrentBlock,
+      toggleCurrentIncomplete,
       applyPriorityOrder,
       extendVoyage: extendVoyageOnce,
       setMood,
       resetToday,
+      planEpoch,
       tickFlying,
       finishFreeFly,
       dismissCheckpoint,
+      cancelVoyage,
     }),
     [
       loading,
@@ -277,13 +304,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateSettings,
       confirmRoute,
       landCurrentBlock,
+      toggleCurrentIncomplete,
       applyPriorityOrder,
       extendVoyageOnce,
       setMood,
       resetToday,
+      planEpoch,
       tickFlying,
       finishFreeFly,
       dismissCheckpoint,
+      cancelVoyage,
     ],
   );
 

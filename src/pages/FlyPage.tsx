@@ -11,14 +11,13 @@ import {
   roundMinutes,
 } from '@/lib/time';
 import type { Block } from '@/types';
+import { CancelVoyageButton } from '@/pages/CancelledPage';
 
 export function FlyPage() {
   const { blockId } = useParams();
   const navigate = useNavigate();
-  const { session, blocks, settings, landCurrentBlock, extendVoyage, applyPriorityOrder } = useApp();
+  const { session, blocks, settings, landCurrentBlock, extendVoyage, applyPriorityOrder, toggleCurrentIncomplete } = useApp();
   const [now, setNow] = useState(Date.now());
-  const [queueNote, setQueueNote] = useState('');
-  const [showQueueInput, setShowQueueInput] = useState(false);
   const [priorityBlocks, setPriorityBlocks] = useState<Block[]>([]);
   const [priorityFirst, setPriorityFirst] = useState<string | null>(null);
   const [secondWarning, setSecondWarning] = useState<string | null>(null);
@@ -32,6 +31,8 @@ export function FlyPage() {
 
   useEffect(() => {
     if (!session) navigate('/evening', { replace: true });
+    else if (session.status === 'cancelled') navigate('/cancelled', { replace: true });
+    else if (session.status === 'dayEnd') navigate('/land', { replace: true });
     else if (!block && !session.checkpoint) navigate('/evening', { replace: true });
   }, [session, block, navigate]);
 
@@ -79,13 +80,10 @@ export function FlyPage() {
   const budgetDrained = roundMinutes(block.plannedDurationMinutes - block.remainingBudgetMinutes);
 
   const handleLand = async () => {
-    const { needsPriority } = await landCurrentBlock(showQueueInput ? queueNote : undefined);
+    const { needsPriority } = await landCurrentBlock();
     if (needsPriority.length >= 2) {
       setPriorityBlocks(needsPriority);
-      return;
     }
-    setShowQueueInput(false);
-    setQueueNote('');
   };
 
   const confirmPriority = async () => {
@@ -136,18 +134,16 @@ export function FlyPage() {
       {!isBreak && budgetDrained > 0 && (
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
           本段可用 {formatBudgetMinutes(budgetMinutes)}
-          {budgetDrained > 0 && (
-            <span style={{ color: 'var(--warn)' }}>
-              {' '}
-              （计划 {block.plannedDurationMinutes} min，已被联动扣减 {formatBudgetMinutes(budgetDrained)}）
-            </span>
-          )}
+          <span style={{ color: 'var(--warn)' }}>
+            {' '}
+            （已被联动扣减 {formatBudgetMinutes(budgetDrained)}）
+          </span>
         </p>
       )}
 
       {isBreak && (
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          刚性 {block.plannedDurationMinutes} 分钟 · 顺序可调，时长不受联动扣减；超时仍会占用后续航段预算
+          刚性接收 · 时长不受联动扣减、也不接收补给；提前结束会把省下的时间补给后续航段；超时仍会占用后续预算
         </p>
       )}
 
@@ -195,7 +191,7 @@ export function FlyPage() {
                     {b.type === 'free' && ' · 最后一程'}
                   </span>
                   <span>
-                    {formatBudgetMinutes(b.remainingBudgetMinutes)} / {b.plannedDurationMinutes} min
+                    {formatBudgetMinutes(b.remainingBudgetMinutes)}
                     {b.status === 'incomplete' && ' · 未完成'}
                   </span>
                 </label>
@@ -212,7 +208,7 @@ export function FlyPage() {
             <div key={b.id} className="rigid-break">
               <label>
                 <span>{b.title}</span>
-                <span className="badge">刚性 {b.plannedDurationMinutes} min · 不参与联动</span>
+                <span className="badge">刚性 {formatBudgetMinutes(b.remainingBudgetMinutes)} · 不参与联动</span>
               </label>
               <div className="budget-track">
                 <div className="budget-fill" style={{ width: '100%', opacity: 0.5 }} />
@@ -232,24 +228,20 @@ export function FlyPage() {
           </button>
         )}
         {!isBreak && (
-          <button className="btn btn-secondary" onClick={() => setShowQueueInput((v) => !v)}>
-            有未完成
+          <button
+            className={`btn btn-secondary ${block.markedIncomplete ? 'is-tagged' : ''}`}
+            aria-pressed={block.markedIncomplete}
+            onClick={() => void toggleCurrentIncomplete()}
+          >
+            未完成
           </button>
         )}
       </div>
 
-      {showQueueInput && (
-        <div className="card" style={{ maxWidth: 480, margin: '16px auto' }}>
-          <label>
-            明早队列备注（可选）
-            <input
-              value={queueNote}
-              onChange={(e) => setQueueNote(e.target.value)}
-              placeholder="例如：卷面剩 3 题"
-              style={{ width: '100%', marginTop: 8, padding: 12, borderRadius: 8, border: 'none' }}
-            />
-          </label>
-        </div>
+      {block.markedIncomplete && (
+        <p style={{ color: 'var(--warn)', fontSize: '0.9rem' }}>
+          已标记未完成 · 进港后仍会记下本段实际用时，今晚结束时可回顾
+        </p>
       )}
 
       {priorityBlocks.length >= 2 && (
@@ -291,6 +283,8 @@ export function FlyPage() {
           </div>
         </div>
       )}
+
+      <CancelVoyageButton />
     </div>
   );
 }

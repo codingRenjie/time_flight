@@ -20,9 +20,14 @@ export function useEveningPlan() {
 }
 
 export function EveningLayout() {
-  const { settings, session, blocks, resetToday } = useApp();
+  const { settings, session, blocks, resetToday, planEpoch } = useApp();
   const navigate = useNavigate();
   const [drafts, setDrafts] = useState<PlanBlockDraft[]>(() => createDefaultPlanDrafts(settings));
+  const [seenEpoch, setSeenEpoch] = useState(planEpoch);
+  if (planEpoch !== seenEpoch) {
+    setSeenEpoch(planEpoch);
+    setDrafts(createDefaultPlanDrafts(settings));
+  }
 
   const { totalMinutes } = useMemo(
     () => getWindowBounds(settings.windowStart, settings.windowEnd, settings.demoMode),
@@ -38,7 +43,7 @@ export function EveningLayout() {
     ? '试用模式 · 从现在开始 120 分钟'
     : `${settings.windowStart} — ${settings.windowEnd}`;
 
-  if (session && session.status !== 'dayEnd') {
+  if (session && session.status !== 'dayEnd' && session.status !== 'cancelled') {
     const current = blocks.find((b) => b.id === session.currentBlockId);
     return (
       <div>
@@ -106,7 +111,7 @@ export function EveningLayout() {
           </p>
         ) : (
           <p className="fuel-help">
-            加学习块会挤占自由飞；提前进港会把省下的时间平均分给后续航段。水果经停为刚性时长（可调顺序）；自由飞恒为最后一程。
+            加学习块会挤占自由飞；提前进港会把省下的时间按顺序补给后续航段。吃水果自身不接收补给，但提前结束会释放时间；自由飞恒为最后一程。
           </p>
         )}
       </div>

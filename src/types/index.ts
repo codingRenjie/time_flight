@@ -7,7 +7,7 @@ export type BlockStatus =
   | 'incomplete'
   | 'queued_for_morning';
 
-export type SessionStatus = 'idle' | 'planning' | 'flying' | 'freeFly' | 'dayEnd';
+export type SessionStatus = 'idle' | 'planning' | 'flying' | 'freeFly' | 'dayEnd' | 'cancelled';
 
 export type Mood = 'happy' | 'neutral' | 'upset';
 
@@ -38,6 +38,10 @@ export interface Block {
   landedAt: string | null;
   extendUsed: boolean;
   queueNote: string | null;
+  /** 孩子在执飞中打的未完成标签；与是否提前/超时进港无关 */
+  markedIncomplete: boolean;
+  /** 排航程时的计划分钟，不随后续补给/扣减改写 */
+  originalPlannedMinutes: number;
 }
 
 export interface SessionCheckpoint {
@@ -47,6 +51,7 @@ export interface SessionCheckpoint {
   nextTitle: string;
   encouragement: string;
   earlyBonusMinutes?: number;
+  markedIncomplete?: boolean;
 }
 
 export interface MorningQueueItem {

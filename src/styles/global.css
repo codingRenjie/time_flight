@@ -176,6 +176,56 @@ select {
   font-weight: 700;
 }
 
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.review-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.review-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+
+.review-title {
+  font-weight: 600;
+}
+
+.review-time {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.review-flag {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.review-item.is-done .review-flag {
+  color: var(--success);
+}
+
+.review-item.is-incomplete .review-flag {
+  color: var(--warn);
+}
+
 .route-list {
   list-style: none;
   padding: 0;
@@ -297,6 +347,12 @@ select {
   color: var(--text);
 }
 
+.btn-secondary.is-tagged {
+  background: rgba(251, 191, 36, 0.18);
+  color: var(--warn);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.45);
+}
+
 .btn-danger {
   background: rgba(248, 113, 113, 0.15);
   color: var(--danger);
@@ -316,6 +372,36 @@ select {
 
 .btn-block {
   width: 100%;
+}
+
+.cancel-voyage-btn {
+  display: block;
+  margin: 40px auto 0;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: rgba(148, 163, 184, 0.38);
+  font-size: 0.75rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.cancel-voyage-btn:hover,
+.cancel-voyage-btn:focus-visible {
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.cancelled-screen {
+  min-height: 55vh;
+  display: grid;
+  place-items: center;
+}
+
+.cancelled-screen h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .fly-screen {
@@ -630,6 +716,62 @@ select {
   place-items: center;
   color: #64748b;
   font-size: 0.85rem;
+}
+
+.settings-fixed-row,
+.settings-fixed-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--bg-soft);
+  border-radius: 12px;
+}
+
+.settings-fixed-name {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.settings-fixed-row input[type='number'],
+.settings-fixed-add input[type='number'] {
+  width: 4.5rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text);
+}
+
+.settings-fixed-delete {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.settings-fixed-add .pool-name {
+  flex: 1 1 140px;
+  width: auto;
+}
+
+.settings-fixed-add select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--text);
 }
 
 @media (min-width: 768px) {

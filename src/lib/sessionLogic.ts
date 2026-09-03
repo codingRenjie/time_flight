@@ -27,6 +27,35 @@ export function computeFreeMinutesBudget(
   return computePlanBudget(totalWindowMinutes, drafts).freeMinutes;
 }
 
+function makeBlock(
+  sessionId: string,
+  type: Block['type'],
+  title: string,
+  order: number,
+  plannedDurationMinutes: number,
+  minimumDurationMinutes: number,
+): Block {
+  return {
+    id: createId(),
+    sessionId,
+    type,
+    title,
+    order,
+    plannedDurationMinutes,
+    remainingBudgetMinutes: plannedDurationMinutes,
+    activeBudgetMinutes: null,
+    minimumDurationMinutes,
+    actualDurationMinutes: null,
+    status: 'planned',
+    startedAt: null,
+    landedAt: null,
+    extendUsed: false,
+    queueNote: null,
+    markedIncomplete: false,
+    originalPlannedMinutes: plannedDurationMinutes,
+  };
+}
+
 export function createSessionFromPlan(
   settings: AppSettings,
   drafts: PlanBlockDraft[],
@@ -40,59 +69,18 @@ export function createSessionFromPlan(
   const sessionId = createId();
   const now = new Date().toISOString();
 
-  const blocks: Block[] = drafts.map((draft, index) => ({
-    id: createId(),
-    sessionId,
-    type: draft.type,
-    title: draft.title,
-    order: index,
-    plannedDurationMinutes: draft.plannedDurationMinutes,
-    remainingBudgetMinutes: draft.plannedDurationMinutes,
-    activeBudgetMinutes: null,
-    minimumDurationMinutes: draft.minimumDurationMinutes,
-    actualDurationMinutes: null,
-    status: 'planned',
-    startedAt: null,
-    landedAt: null,
-    extendUsed: false,
-    queueNote: null,
-  }));
-
-  blocks.push({
-    id: createId(),
-    sessionId,
-    type: 'free',
-    title: '自由飞行',
-    order: blocks.length,
-    plannedDurationMinutes: freeBudget,
-    remainingBudgetMinutes: freeBudget,
-    activeBudgetMinutes: null,
-    minimumDurationMinutes: 0,
-    actualDurationMinutes: null,
-    status: 'planned',
-    startedAt: null,
-    landedAt: null,
-    extendUsed: false,
-    queueNote: null,
-  });
-
-  blocks.push({
-    id: createId(),
-    sessionId,
-    type: 'terminal',
-    title: `${settings.windowEnd} 进港`,
-    order: blocks.length,
-    plannedDurationMinutes: 0,
-    remainingBudgetMinutes: 0,
-    activeBudgetMinutes: null,
-    minimumDurationMinutes: 0,
-    actualDurationMinutes: null,
-    status: 'planned',
-    startedAt: null,
-    landedAt: null,
-    extendUsed: false,
-    queueNote: null,
-  });
+  const blocks: Block[] = drafts.map((draft, index) =>
+    makeBlock(
+      sessionId,
+      draft.type,
+      draft.title,
+      index,
+      draft.plannedDurationMinutes,
+      draft.minimumDurationMinutes,
+    ),
+  );
+  blocks.push(makeBlock(sessionId, 'free', '自由飞行', blocks.length, freeBudget, 0));
+  blocks.push(makeBlock(sessionId, 'terminal', `${settings.windowEnd} 进港`, blocks.length, 0, 0));
 
   const session: EveningSession = {
     id: sessionId,
@@ -191,6 +179,9 @@ const ENCOURAGEMENTS: Record<string, string[]> = {
 };
 
 function pickEncouragement(block: Block): string {
+  if (block.markedIncomplete) {
+    return '本段已进港，并记下未完成。今晚全部结束后可以一起看实际用时。';
+  }
   const key = block.type === 'mandatory' ? 'mandatory' : block.type;
   const list = ENCOURAGEMENTS[key] ?? ENCOURAGEMENTS.study;
   return list[Math.floor(Math.random() * list.length)];
@@ -227,11 +218,47 @@ export function buildCheckpoint(
     nextTitle: next?.title ?? '今日进港',
     encouragement: pickEncouragement(landedBlock),
     earlyBonusMinutes: earlyBonusMinutes > 0 ? earlyBonusMinutes : undefined,
+    markedIncomplete: landedBlock.markedIncomplete || undefined,
   };
 }
 
+function addOneMinuteToBlock(block: Block, session: EveningSession): void {
+  block.remainingBudgetMinutes = roundMinutes(block.remainingBudgetMinutes + 1);
+  block.plannedDurationMinutes = roundMinutes(block.plannedDurationMinutes + 1);
+  syncFreeFlySession(block, session);
+}
+
 /**
- * 将 totalMinutes 整分钟均分到 targets（四舍五入后用最大余数法分配，保证总和精确）
+ * 提前进港：每释放 1 分钟，按后续待飞顺序补给一项 1 分钟（与超时扣减对称）。
+ * 从第一项起轮转；某项若中途被移出参与集合，则跳到当时仍可补给的下一项。
+ */
+export function compensateMinutesSequentially(
+  totalMinutes: number,
+  blocks: Block[],
+  current: Block,
+  session: EveningSession,
+): number {
+  const total = roundMinutes(totalMinutes);
+  if (total <= 0) return 0;
+
+  let given = 0;
+  let nextId: string | null = null;
+  for (let i = 0; i < total; i++) {
+    const targets = getPendingDistributionTargets(blocks, current);
+    if (targets.length === 0) break;
+    const target = pickNextDrainTarget(targets, nextId);
+    if (!target) break;
+    addOneMinuteToBlock(target, session);
+    const remaining = getPendingDistributionTargets(blocks, current);
+    const next = remaining.find((t) => t.order > target.order) ?? remaining[0] ?? null;
+    nextId = next?.id ?? null;
+    given += 1;
+  }
+  return given;
+}
+
+/**
+ * @deprecated 提前进港已改为 compensateMinutesSequentially；保留均分算法仅供对照。
  */
 export function distributeMinutesEvenly(
   totalMinutes: number,
@@ -291,6 +318,7 @@ export function deductMinutesEvenly(
     if (block.remainingBudgetMinutes <= 0) {
       block.remainingBudgetMinutes = 0;
       block.status = 'incomplete';
+      block.markedIncomplete = true;
       queue.push({
         id: createId(),
         date: sessionDate,
@@ -316,6 +344,7 @@ function deductOneMinuteFromBlock(
   if (block.remainingBudgetMinutes <= 0) {
     block.remainingBudgetMinutes = 0;
     block.status = 'incomplete';
+    block.markedIncomplete = true;
     queue.push({
       id: createId(),
       date: sessionDate,
@@ -441,9 +470,9 @@ export function landBlock(
   const earlyRelease = Math.max(0, budgetAllocated - actualMinutes);
   block.activeBudgetMinutes = null;
 
-  if (earlyRelease > 0 && block.type !== 'free' && block.type !== 'break') {
-    const targets = getPendingDistributionTargets(blocks, block);
-    const distributed = distributeMinutesEvenly(earlyRelease, targets, session);
+  let distributed = 0;
+  if (earlyRelease > 0 && block.type !== 'free') {
+    distributed = compensateMinutesSequentially(earlyRelease, blocks, block, session);
     session.earlyLandBonusMinutes += distributed;
   }
 
@@ -465,7 +494,7 @@ export function landBlock(
   session.overtimeDrainCycleIndex = null;
   session.overtimeDrainNextTargetId = null;
   session.planReminderShown = false;
-  const earlyBonus = earlyRelease > 0 && block.type !== 'free' && block.type !== 'break' ? earlyRelease : 0;
+  const earlyBonus = block.type !== 'free' ? distributed : 0;
   return { session, blocks, morningQueue, earlyBonus };
 }
 
@@ -576,6 +605,7 @@ export function markSecondIncompleteAfterPriority(
   if (afterFirst < second.minimumDurationMinutes) {
     second.status = 'incomplete';
     second.remainingBudgetMinutes = 0;
+    second.markedIncomplete = true;
     return [
       ...morningQueue,
       {
@@ -631,9 +661,52 @@ export function finishDay(session: EveningSession): EveningSession {
   };
 }
 
+/** 取消当晚全部航程：不进港、不统计，只留下取消状态 */
+export function cancelVoyage(session: EveningSession): EveningSession {
+  return {
+    ...session,
+    status: 'cancelled',
+    checkpoint: null,
+    currentBlockId: null,
+    endedAt: new Date().toISOString(),
+  };
+}
+
 export function getBlockPlannedEnd(block: Block): Date | null {
   if (!block.startedAt) return null;
   return new Date(new Date(block.startedAt).getTime() + block.plannedDurationMinutes * 60000);
+}
+
+export function isTaskIncomplete(block: Block): boolean {
+  return block.markedIncomplete || block.status === 'incomplete';
+}
+
+export function isTaskCompleted(block: Block): boolean {
+  return block.status === 'landed' && !isTaskIncomplete(block);
+}
+
+export function getDayTaskReviews(blocks: Block[]) {
+  return [...blocks]
+    .filter((b) => b.type !== 'terminal')
+    .sort((a, b) => a.order - b.order)
+    .map((b) => {
+      const plannedMinutes = roundMinutes(b.originalPlannedMinutes ?? b.plannedDurationMinutes);
+      const actualMinutes =
+        b.actualDurationMinutes != null
+          ? roundMinutes(b.actualDurationMinutes)
+          : b.startedAt
+            ? Math.max(1, roundMinutes((Date.now() - new Date(b.startedAt).getTime()) / 60000))
+            : 0;
+      return {
+        id: b.id,
+        title: b.type === 'free' ? `${b.title} · 最后一程` : b.title,
+        type: b.type,
+        plannedMinutes,
+        actualMinutes,
+        completed: isTaskCompleted(b),
+        incomplete: isTaskIncomplete(b),
+      };
+    });
 }
 
 export function getSessionSummary(
@@ -642,9 +715,9 @@ export function getSessionSummary(
   morningQueue: MorningQueueItem[],
 ) {
   const flyable = getFlyableBlocks(blocks);
-  const completed = flyable.filter((b) => b.status === 'landed').length;
+  const completed = flyable.filter((b) => isTaskCompleted(b)).length;
   const reading = blocks.find((b) => b.title === '英语朗读');
-  const mandatoryDone = reading?.status === 'landed';
+  const mandatoryDone = reading ? isTaskCompleted(reading) : false;
   const freeBlock = blocks.find((b) => b.type === 'free');
   const freeUsed = freeBlock?.actualDurationMinutes ?? 0;
 

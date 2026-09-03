@@ -1,11 +1,24 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
-import type { AppSettings } from '@/types';
+import { createId } from '@/lib/id';
+import { isFixedModule, keepFixedModuleSettings } from '@/lib/defaults';
+import type { AppSettings, BlockTemplate } from '@/types';
 
 export function SettingsPage() {
   const { settings, updateSettings, resetToday } = useApp();
+  const navigate = useNavigate();
   const [draft, setDraft] = useState<AppSettings>(settings);
   const [saved, setSaved] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newMinutes, setNewMinutes] = useState(15);
+  const [newKind, setNewKind] = useState<'mandatory' | 'break'>('mandatory');
+
+  useEffect(() => {
+    setDraft(settings);
+  }, [settings]);
+
+  const fixedTemplates = draft.templates.filter(isFixedModule);
 
   const save = async () => {
     await updateSettings(draft);
@@ -13,10 +26,51 @@ export function SettingsPage() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const updateFixedMinutes = (id: string, raw: string) => {
+    const val = Number(raw) || 1;
+    setDraft({
+      ...draft,
+      templates: draft.templates.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              defaultDurationMinutes: val,
+              minimumDurationMinutes: val,
+            }
+          : t,
+      ),
+    });
+  };
+
+  const removeFixed = (id: string) => {
+    setDraft({
+      ...draft,
+      templates: draft.templates.filter((t) => t.id !== id),
+    });
+  };
+
+  const addFixed = () => {
+    const title = newTitle.trim();
+    if (!title) return;
+    const minutes = Math.min(120, Math.max(1, Math.round(Number(newMinutes)) || 15));
+    const tpl: BlockTemplate = {
+      id: createId(),
+      type: newKind,
+      title,
+      defaultDurationMinutes: minutes,
+      minimumDurationMinutes: minutes,
+      isDeletable: false,
+      isEnabled: true,
+    };
+    setDraft({ ...draft, templates: [...draft.templates, tpl] });
+    setNewTitle('');
+    setNewMinutes(15);
+    setNewKind('mandatory');
+  };
+
   return (
     <div>
-      <h1 className="page-title">家长设置</h1>
-      <p className="page-subtitle">配置窗口、模板与试用模式</p>
+      <h1 className="page-title">系统设置</h1>
 
       <div className="card">
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
@@ -72,36 +126,64 @@ export function SettingsPage() {
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>块模板默认时长</h3>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          快速试玩可把「数学巩固」改为 3 分钟，便于体验超时联动扣减。
+        <h3 style={{ marginTop: 0 }}>固定执飞模块设置</h3>
+        <p className="route-hint">
+          这些模块每晚默认在航程里，孩子不能移出。可改时长，也可在此新增或删除。
         </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: 12 }}>
-          孩子可在执飞页（非水果经停）使用「延长航程」：整晚仅一次，进港推迟至 21:40，10 分钟全部加在当前执飞航段预算。
-        </p>
-        {draft.templates.map((t, i) => (
-          <div key={t.id} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ flex: 1 }}>{t.title}</span>
+        {fixedTemplates.map((t) => (
+          <div key={t.id} className="settings-fixed-row">
+            <span className="settings-fixed-name">
+              {t.title}
+              <span className="badge">{t.type === 'break' ? '刚性' : '必做'}</span>
+            </span>
             <input
               type="number"
               min={1}
               max={120}
               value={t.defaultDurationMinutes}
-              onChange={(e) => {
-                const val = Number(e.target.value) || t.defaultDurationMinutes;
-                const templates = [...draft.templates];
-                templates[i] = {
-                  ...t,
-                  defaultDurationMinutes: val,
-                  minimumDurationMinutes: val,
-                };
-                setDraft({ ...draft, templates });
-              }}
-              style={{ width: 80, padding: 8, borderRadius: 8, border: 'none' }}
+              onChange={(e) => updateFixedMinutes(t.id, e.target.value)}
             />
-            <span>min</span>
+            <span>分钟</span>
+            <button
+              type="button"
+              className="settings-fixed-delete"
+              aria-label={`删除 ${t.title}`}
+              onClick={() => removeFixed(t.id)}
+            >
+              ×
+            </button>
           </div>
         ))}
+        <div className="settings-fixed-add">
+          <input
+            className="pool-name"
+            placeholder="名称，如：听写"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+          />
+          <input
+            type="number"
+            min={1}
+            max={120}
+            value={newMinutes || ''}
+            onChange={(e) => setNewMinutes(Number(e.target.value) || 0)}
+          />
+          <span>分钟</span>
+          <select
+            value={newKind}
+            onChange={(e) => setNewKind(e.target.value === 'break' ? 'break' : 'mandatory')}
+          >
+            <option value="mandatory">必做</option>
+            <option value="break">经停（刚性）</option>
+          </select>
+          <button
+            className="btn btn-secondary"
+            disabled={!newTitle.trim()}
+            onClick={addFixed}
+          >
+            新增模块
+          </button>
+        </div>
       </div>
 
       <div className="btn-row">
@@ -109,7 +191,16 @@ export function SettingsPage() {
           保存设置
         </button>
         {saved && <span style={{ color: 'var(--success)', alignSelf: 'center' }}>已保存</span>}
-        <button className="btn btn-danger" onClick={() => void resetToday()}>
+        <button
+          className="btn btn-danger"
+          onClick={() => {
+            void (async () => {
+              await updateSettings(keepFixedModuleSettings(draft));
+              await resetToday();
+              navigate('/evening');
+            })();
+          }}
+        >
           重置今日航程
         </button>
       </div>

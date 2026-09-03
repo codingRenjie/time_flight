@@ -1,5 +1,6 @@
 import { useApp } from '@/context/AppContext';
 import { formatBudgetMinutes } from '@/lib/time';
+import { CancelVoyageButton } from '@/pages/CancelledPage';
 
 export function CheckpointPage() {
   const { session, dismissCheckpoint } = useApp();
@@ -24,7 +25,15 @@ export function CheckpointPage() {
       {cp.earlyBonusMinutes !== undefined && cp.earlyBonusMinutes > 0 && (
         <div className="card checkpoint-card">
           <p className="checkpoint-stat">
-            提前进港 <strong>+{formatBudgetMinutes(cp.earlyBonusMinutes)}</strong> 已平均分配到后续待飞航段
+            提前进港 <strong>+{formatBudgetMinutes(cp.earlyBonusMinutes)}</strong> 已按顺序补给后续待飞航段
+          </p>
+        </div>
+      )}
+
+      {cp.markedIncomplete && (
+        <div className="card checkpoint-card">
+          <p className="checkpoint-stat">
+            本段已记下<strong>未完成</strong>，今晚全部进港后会看到实际用时和计划时间
           </p>
         </div>
       )}
@@ -37,6 +46,7 @@ export function CheckpointPage() {
       <button className="btn btn-primary btn-block checkpoint-btn" onClick={() => void dismissCheckpoint()}>
         继续下一程 · 起飞
       </button>
+      <CancelVoyageButton />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
 import { EveningLayout } from '@/pages/EveningLayout';
@@ -8,12 +8,14 @@ import { FlyPage } from '@/pages/FlyPage';
 import { FreePage } from '@/pages/FreePage';
 import { LandPage } from '@/pages/LandPage';
 import { CheckpointPage } from '@/pages/CheckpointPage';
+import { CancelledPage } from '@/pages/CancelledPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import '@/styles/global.css';
 
 function SessionRouter() {
   const { session, blocks, tickFlying } = useApp();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const id = window.setInterval(() => void tickFlying(), 1000);
@@ -22,6 +24,12 @@ function SessionRouter() {
 
   useEffect(() => {
     if (!session) return;
+    if (session.status === 'cancelled') {
+      if (location.pathname !== '/cancelled' && location.pathname !== '/settings') {
+        navigate('/cancelled', { replace: true });
+      }
+      return;
+    }
     if (session.checkpoint) {
       navigate('/checkpoint', { replace: true });
       return;
@@ -42,7 +50,7 @@ function SessionRouter() {
         navigate(`/fly/${current.id}`, { replace: true });
       }
     }
-  }, [session, blocks, navigate]);
+  }, [session, blocks, navigate, location.pathname]);
 
   return null;
 }
@@ -80,6 +88,7 @@ function AppRoutes() {
           <Route path="/free" element={<FreePage />} />
           <Route path="/checkpoint" element={<CheckpointPage />} />
           <Route path="/land" element={<LandPage />} />
+          <Route path="/cancelled" element={<CancelledPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Layout>

@@ -57,11 +57,17 @@ export function ArrivedPage() {
           {landed?.markedIncomplete && (
             <p className="arrived-flag">已标记「未完成」，会在今日摘要中展示</p>
           )}
-          {session.earlyLandBonusMinutes > 0 && (
-            <p className="arrived-bonus">
-              本次航程累计提前奖励 +{session.earlyLandBonusMinutes} 分钟，已分配给后续任务
-            </p>
-          )}
+          {session.lastLandingBonus &&
+            session.lastLandingBonus.toTasks + session.lastLandingBonus.toSlack > 0 && (
+              <p className="arrived-bonus">
+                提前进港释放 +{session.lastLandingBonus.toTasks + session.lastLandingBonus.toSlack}{' '}
+                分钟
+                {session.lastLandingBonus.toTasks > 0 &&
+                  `，${session.lastLandingBonus.toTasks} 分钟已分配给后续任务`}
+                {session.lastLandingBonus.toSlack > 0 &&
+                  `，${session.lastLandingBonus.toSlack} 分钟已存入余量池`}
+              </p>
+            )}
           {hasNext && next && (
             <p className="arrived-next">
               下一项：{next.title} · {next.remainingBudgetMinutes} 分钟

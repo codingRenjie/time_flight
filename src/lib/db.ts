@@ -95,3 +95,14 @@ export async function clearSession(): Promise<void> {
     for (const b of blocks) await db.delete('blocks', b.id);
   }
 }
+
+/** 开启新航程时全量替换（同时清掉上一趟航程的残留数据） */
+export async function replaceSession(session: FlightSession, blocks: Block[]): Promise<void> {
+  const db = await getDb();
+  await db.clear('sessions');
+  await db.clear('blocks');
+  await db.put('sessions', session);
+  for (const block of blocks) {
+    await db.put('blocks', block);
+  }
+}

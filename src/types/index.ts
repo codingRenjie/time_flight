@@ -74,6 +74,8 @@ export interface FlightSession {
   overtimeDrainNextTargetId: string | null;
   voyageExtended: boolean;
   earlyLandBonusMinutes: number;
+  /** 刚进港任务的提前释放去向（页面06 展示用） */
+  lastLandingBonus: { toTasks: number; toSlack: number } | null;
   confirmedAt: string;
   endedAt: string | null;
 }

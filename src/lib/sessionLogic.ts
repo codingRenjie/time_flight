@@ -61,6 +61,7 @@ export function createSessionFromPlan(
     overtimeDrainNextTargetId: null,
     voyageExtended: false,
     earlyLandBonusMinutes: 0,
+    lastLandingBonus: null,
     confirmedAt: new Date().toISOString(),
     endedAt: null,
   };
@@ -222,7 +223,7 @@ export function landBlock(
   block: Block,
   session: FlightSession,
   blocks: Block[],
-): { earlyBonus: number } {
+): { earlyBonus: number; toSlack: number } {
   const now = new Date();
   const started = block.startedAt ? new Date(block.startedAt).getTime() : now.getTime();
   const actualMinutes = Math.max(1, roundMinutes((now.getTime() - started) / 60000));
@@ -235,17 +236,24 @@ export function landBlock(
   block.activeBudgetMinutes = null;
 
   let distributed = 0;
+  let toSlack = 0;
   if (earlyRelease > 0) {
+    // 优先轮询分配给后续非固定任务；分不完的（比如只剩固定任务）存入余量池
     distributed = compensateMinutesSequentially(earlyRelease, blocks, block);
+    toSlack = earlyRelease - distributed;
+    if (toSlack > 0) {
+      session.slackRemainingMinutes += toSlack;
+    }
     session.earlyLandBonusMinutes += distributed;
   }
+  session.lastLandingBonus = { toTasks: distributed, toSlack };
 
   session.currentBlockId = null;
   session.lastLandedBlockId = block.id;
   session.status = 'betweenFlights';
   session.overtimeDrainCycleIndex = null;
   session.overtimeDrainNextTargetId = null;
-  return { earlyBonus: distributed };
+  return { earlyBonus: distributed, toSlack };
 }
 
 /**

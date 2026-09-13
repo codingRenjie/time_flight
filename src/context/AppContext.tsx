@@ -14,7 +14,7 @@ import type {
   PlanDraft,
   PlanTaskDraft,
 } from '@/types';
-import { clearSession, loadFullState, persistState, saveSettings } from '@/lib/db';
+import { clearSession, loadFullState, persistState, replaceSession, saveSettings } from '@/lib/db';
 import { createDefaultPlanTasks } from '@/lib/defaults';
 import { getBlockOvertimeMinutes } from '@/lib/time';
 import {
@@ -117,9 +117,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const confirmPlan = useCallback(async () => {
     if (!settings || !planDraft || planDraft.tasks.length === 0) return;
     const { session: s, blocks: b } = createSessionFromPlan(planDraft, settings.selectedAircraftId);
-    await saveAll(s, b);
+    // 新航程全量替换，清掉上一趟的残留数据
+    setSession(s);
+    setBlocks(b);
+    await replaceSession(s, b);
     setPlanDraft(null);
-  }, [settings, planDraft, saveAll]);
+  }, [settings, planDraft]);
 
   /* ---------- 执飞流程 ---------- */
 

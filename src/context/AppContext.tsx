@@ -7,63 +7,72 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { AppSettings, Block, EveningSession, Mood, MorningQueueItem, PlanBlockDraft } from '@/types';
-import { loadFullState, persistState, saveSettings, clearTodaySession } from '@/lib/db';
-import { keepFixedModuleSettings } from '@/lib/defaults';
+import type {
+  AppSettings,
+  Block,
+  FlightSession,
+  PlanDraft,
+  PlanTaskDraft,
+} from '@/types';
+import { clearSession, loadFullState, persistState, saveSettings } from '@/lib/db';
+import { createDefaultPlanTasks } from '@/lib/defaults';
 import { getBlockOvertimeMinutes } from '@/lib/time';
 import {
-  advanceToNextBlock,
-  processOvertimeDrain,
-  buildCheckpoint,
+  cancelVoyage as markCancelled,
   checkWindowEnd,
   createSessionFromPlan,
-  extendVoyage,
+  extendVoyage as applyExtend,
   finishDay,
-  cancelVoyage as markVoyageCancelled,
   landBlock,
-  markSecondIncompleteAfterPriority,
-  needsPrioritySelection,
-  reorderBlocksByPriority,
+  processOvertimeDrain,
+  startFirstBlock as startFirst,
+  startNextBlock as startNext,
 } from '@/lib/sessionLogic';
 
 interface AppContextValue {
   loading: boolean;
   settings: AppSettings;
-  session: EveningSession | null;
+  session: FlightSession | null;
   blocks: Block[];
-  morningQueue: MorningQueueItem[];
-  refresh: () => Promise<void>;
+  planDraft: PlanDraft | null;
   updateSettings: (settings: AppSettings) => Promise<void>;
-  confirmRoute: (drafts: PlanBlockDraft[]) => Promise<void>;
-  landCurrentBlock: (queueNote?: string) => Promise<{ needsPriority: Block[] }>;
-  toggleCurrentIncomplete: () => Promise<void>;
-  applyPriorityOrder: (orderedIds: string[], firstId: string) => Promise<void>;
-  extendVoyage: () => Promise<boolean>;
-  setMood: (mood: Mood) => Promise<void>;
-  resetToday: () => Promise<void>;
-  planEpoch: number;
-  tickFlying: () => Promise<void>;
-  finishFreeFly: () => Promise<void>;
-  dismissCheckpoint: () => Promise<void>;
+  /* 规划流程（页面01→02→03） */
+  beginPlan: (windowStart: string, windowEnd: string) => void;
+  setPlanTasks: (tasks: PlanTaskDraft[]) => void;
+  discardPlan: () => void;
+  confirmPlan: () => Promise<void>;
+  /* 执飞流程（页面04→05→06→10） */
+  startFirstBlock: () => Promise<Block | null>;
+  landCurrentBlock: () => Promise<{ earlyBonus: number }>;
+  startNextBlock: () => Promise<Block | null>;
+  finishVoyage: () => Promise<void>;
   cancelVoyage: () => Promise<void>;
+  resetVoyage: () => Promise<void>;
+  toggleCurrentIncomplete: () => Promise<void>;
+  extendVoyage: () => Promise<boolean>;
+  tickFlying: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+/** 机型解锁规则：按累计完成航程数 */
+const UNLOCK_RULES: { aircraftId: string; voyages: number }[] = [
+  { aircraftId: 'ac-g650', voyages: 5 },
+  { aircraftId: 'ac-bell407', voyages: 15 },
+];
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [session, setSession] = useState<EveningSession | null>(null);
+  const [session, setSession] = useState<FlightSession | null>(null);
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [morningQueue, setMorningQueue] = useState<MorningQueueItem[]>([]);
-  const [planEpoch, setPlanEpoch] = useState(0);
+  const [planDraft, setPlanDraft] = useState<PlanDraft | null>(null);
 
   const refresh = useCallback(async () => {
     const state = await loadFullState();
     setSettings(state.settings);
     setSession(state.session);
     setBlocks(state.blocks);
-    setMorningQueue(state.morningQueue);
     setLoading(false);
   }, []);
 
@@ -72,15 +81,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const saveAll = useCallback(
-    async (
-      nextSession: EveningSession | null,
-      nextBlocks: Block[],
-      nextQueue: MorningQueueItem[],
-    ) => {
+    async (nextSession: FlightSession | null, nextBlocks: Block[]) => {
       setSession(nextSession);
       setBlocks(nextBlocks);
-      setMorningQueue(nextQueue);
-      await persistState(nextSession, nextBlocks, nextQueue);
+      await persistState(nextSession, nextBlocks);
     },
     [],
   );
@@ -90,50 +94,96 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await saveSettings(next);
   }, []);
 
-  const confirmRoute = useCallback(
-    async (drafts: PlanBlockDraft[]) => {
+  /* ---------- 规划流程 ---------- */
+
+  const beginPlan = useCallback(
+    (windowStart: string, windowEnd: string) => {
       if (!settings) return;
-      const { session: s, blocks: b } = createSessionFromPlan(settings, drafts);
-      await saveAll(s, b, morningQueue);
+      setPlanDraft({
+        windowStart,
+        windowEnd,
+        tasks: createDefaultPlanTasks(settings),
+      });
     },
-    [settings, morningQueue, saveAll],
+    [settings],
   );
 
-  const landCurrentBlock = useCallback(
-    async (queueNote?: string) => {
-      if (!session) return { needsPriority: [] as Block[] };
-      const current = blocks.find((b) => b.id === session.currentBlockId);
-      if (!current) return { needsPriority: [] as Block[] };
+  const setPlanTasks = useCallback((tasks: PlanTaskDraft[]) => {
+    setPlanDraft((d) => (d ? { ...d, tasks } : d));
+  }, []);
 
-      let nextSession = { ...session };
-      let nextBlocks = blocks.map((b) => ({ ...b }));
-      let nextQueue = [...morningQueue];
-      const currentCopy = nextBlocks.find((b) => b.id === current.id)!;
+  const discardPlan = useCallback(() => setPlanDraft(null), []);
 
-      const result = landBlock(currentCopy, nextSession, nextBlocks, nextQueue, queueNote);
-      nextSession = result.session;
-      nextBlocks = result.blocks;
-      nextQueue = result.morningQueue;
+  const confirmPlan = useCallback(async () => {
+    if (!settings || !planDraft || planDraft.tasks.length === 0) return;
+    const { session: s, blocks: b } = createSessionFromPlan(planDraft, settings.selectedAircraftId);
+    await saveAll(s, b);
+    setPlanDraft(null);
+  }, [settings, planDraft, saveAll]);
 
-      const priority = needsPrioritySelection(nextBlocks, nextSession);
-      if (priority.length >= 2) {
-        nextSession.currentBlockId = null;
-        await saveAll(nextSession, nextBlocks, nextQueue);
-        return { needsPriority: priority };
-      }
+  /* ---------- 执飞流程 ---------- */
 
-      nextSession.checkpoint = buildCheckpoint(
-        currentCopy,
-        nextBlocks,
-        nextSession,
-        result.earlyBonus,
-      );
-      nextSession.currentBlockId = null;
-      await saveAll(nextSession, nextBlocks, nextQueue);
-      return { needsPriority: [] as Block[] };
-    },
-    [session, blocks, morningQueue, saveAll],
-  );
+  const startFirstBlockAction = useCallback(async (): Promise<Block | null> => {
+    if (!session || session.status !== 'ready') return null;
+    const nextSession = { ...session };
+    const nextBlocks = blocks.map((b) => ({ ...b }));
+    const started = startFirst(nextBlocks, nextSession);
+    await saveAll(nextSession, nextBlocks);
+    return started;
+  }, [session, blocks, saveAll]);
+
+  const landCurrentBlock = useCallback(async (): Promise<{ earlyBonus: number }> => {
+    if (!session || !session.currentBlockId) return { earlyBonus: 0 };
+    const current = blocks.find((b) => b.id === session.currentBlockId);
+    if (!current) return { earlyBonus: 0 };
+    const nextSession = { ...session };
+    const nextBlocks = blocks.map((b) => ({ ...b }));
+    const currentCopy = nextBlocks.find((b) => b.id === current.id)!;
+    const { earlyBonus } = landBlock(currentCopy, nextSession, nextBlocks);
+    await saveAll(nextSession, nextBlocks);
+    return { earlyBonus };
+  }, [session, blocks, saveAll]);
+
+  const startNextBlockAction = useCallback(async (): Promise<Block | null> => {
+    if (!session || session.status !== 'betweenFlights') return null;
+    const nextSession = { ...session };
+    const nextBlocks = blocks.map((b) => ({ ...b }));
+    const started = startNext(nextBlocks, nextSession);
+    await saveAll(nextSession, nextBlocks);
+    return started;
+  }, [session, blocks, saveAll]);
+
+  const finishVoyage = useCallback(async () => {
+    if (!session || !settings) return;
+    const finished = finishDay(session);
+    // 统计与机型解锁
+    const flown = blocks.reduce((s, b) => s + (b.actualDurationMinutes ?? 0), 0);
+    const stats = {
+      completedVoyages: settings.stats.completedVoyages + 1,
+      totalFlownMinutes: settings.stats.totalFlownMinutes + flown,
+    };
+    const aircrafts = settings.aircrafts.map((a) => {
+      if (a.unlocked) return a;
+      const rule = UNLOCK_RULES.find((r) => r.aircraftId === a.id);
+      return rule && stats.completedVoyages >= rule.voyages ? { ...a, unlocked: true } : a;
+    });
+    const nextSettings = { ...settings, stats, aircrafts };
+    setSettings(nextSettings);
+    await saveSettings(nextSettings);
+    await saveAll(finished, blocks);
+  }, [session, settings, blocks, saveAll]);
+
+  const cancelVoyage = useCallback(async () => {
+    if (!session || session.status === 'dayEnd' || session.status === 'cancelled') return;
+    await saveAll(markCancelled(session), blocks);
+  }, [session, blocks, saveAll]);
+
+  const resetVoyage = useCallback(async () => {
+    await clearSession();
+    setSession(null);
+    setBlocks([]);
+    setPlanDraft(null);
+  }, []);
 
   const toggleCurrentIncomplete = useCallback(async () => {
     if (!session) return;
@@ -142,135 +192,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const nextBlocks = blocks.map((b) =>
       b.id === current.id ? { ...b, markedIncomplete: !b.markedIncomplete } : b,
     );
-    await saveAll(session, nextBlocks, morningQueue);
-  }, [session, blocks, morningQueue, saveAll]);
+    await saveAll(session, nextBlocks);
+  }, [session, blocks, saveAll]);
 
-  const applyPriorityOrder = useCallback(
-    async (orderedIds: string[], firstId: string) => {
-      if (!session) return;
-      let nextBlocks = reorderBlocksByPriority([...blocks], orderedIds);
-      let nextQueue = markSecondIncompleteAfterPriority(nextBlocks, firstId, session, morningQueue);
-      let nextSession = { ...session };
-      const lastLanded = [...nextBlocks]
-        .filter((b) => b.status === 'landed')
-        .sort((a, b) => (b.landedAt ?? '').localeCompare(a.landedAt ?? ''))[0];
-      nextSession.checkpoint = buildCheckpoint(
-        lastLanded ?? nextBlocks.find((b) => b.id === firstId)!,
-        nextBlocks,
-        nextSession,
-        0,
-      );
-      nextSession.currentBlockId = null;
-      await saveAll(nextSession, nextBlocks, nextQueue);
-    },
-    [session, blocks, morningQueue, saveAll],
-  );
-
-  const dismissCheckpoint = useCallback(async () => {
-    if (!session) return;
-    let nextSession: EveningSession = { ...session, checkpoint: null };
+  const extendVoyageAction = useCallback(async (): Promise<boolean> => {
+    if (!session || !settings || !settings.voyageExtendEnabled) return false;
+    if (session.status !== 'flying') return false;
+    const nextSession = { ...session };
     const nextBlocks = blocks.map((b) => ({ ...b }));
-    const next = advanceToNextBlock(nextBlocks, nextSession);
-    if (!next && checkWindowEnd(nextSession)) {
-      nextSession = finishDay(nextSession);
-    } else if (!next) {
-      const free = nextBlocks.find((b) => b.type === 'free' && b.remainingBudgetMinutes <= 0);
-      if (free) nextSession = finishDay(nextSession);
-    }
-    await saveAll(nextSession, nextBlocks, morningQueue);
-  }, [session, blocks, morningQueue, saveAll]);
-
-  const extendVoyageOnce = useCallback(async () => {
-    if (!session || !settings || !session.currentBlockId) return false;
-    const current = blocks.find((b) => b.id === session.currentBlockId);
-    if (!current || current.status !== 'flying' || current.type === 'break' || current.type === 'free') {
-      return false;
-    }
-    let nextSession = { ...session };
-    const nextBlocks = blocks.map((b) => ({ ...b }));
-    const ok = extendVoyage(
-      nextSession,
-      nextBlocks,
-      session.currentBlockId,
-      settings.voyageExtendMinutes,
-    );
+    const ok = applyExtend(nextSession, nextBlocks, settings.voyageExtendMinutes);
     if (!ok) return false;
-    await saveAll(nextSession, nextBlocks, morningQueue);
+    await saveAll(nextSession, nextBlocks);
     return true;
-  }, [session, settings, blocks, morningQueue, saveAll]);
-
-  const setMood = useCallback(
-    async (mood: Mood) => {
-      if (!session) return;
-      await saveAll({ ...session, mood }, blocks, morningQueue);
-    },
-    [session, blocks, morningQueue, saveAll],
-  );
-
-  const resetToday = useCallback(async () => {
-    const state = await loadFullState();
-    await saveSettings(keepFixedModuleSettings(state.settings));
-    await clearTodaySession();
-    await refresh();
-    setPlanEpoch((n) => n + 1);
-  }, [refresh]);
-
-  const cancelVoyage = useCallback(async () => {
-    if (!session || session.status === 'dayEnd' || session.status === 'cancelled') return;
-    await saveAll(markVoyageCancelled(session), blocks, morningQueue);
-  }, [session, blocks, morningQueue, saveAll]);
-
-  const finishFreeFly = useCallback(async () => {
-    if (!session) return;
-    const free = blocks.find((b) => b.type === 'free');
-    if (free && free.status === 'flying') {
-      let nextSession = { ...session };
-      let nextBlocks = blocks.map((b) => ({ ...b }));
-      let nextQueue = [...morningQueue];
-      const freeCopy = nextBlocks.find((b) => b.id === free.id)!;
-      const result = landBlock(freeCopy, nextSession, nextBlocks, nextQueue);
-      nextSession = finishDay(result.session);
-      await saveAll(nextSession, result.blocks, result.morningQueue);
-    } else {
-      await saveAll(finishDay(session), blocks, morningQueue);
-    }
-  }, [session, blocks, morningQueue, saveAll]);
+  }, [session, settings, blocks, saveAll]);
 
   const tickFlying = useCallback(async () => {
-    if (!session || session.status === 'dayEnd' || session.status === 'cancelled' || session.checkpoint) return;
+    if (!session || session.status !== 'flying') return;
     if (checkWindowEnd(session)) {
-      await saveAll(finishDay(session), blocks, morningQueue);
+      await saveAll(finishDay(session), blocks);
       return;
     }
-
     const current = blocks.find((b) => b.id === session.currentBlockId);
-    if (!current || current.status !== 'flying' || current.type === 'free') return;
+    if (!current || current.status !== 'flying') return;
 
-    let nextSession = { ...session };
-    let nextBlocks = blocks.map((b) => ({ ...b }));
-    let nextQueue = [...morningQueue];
-    const currentCopy = nextBlocks.find((b) => b.id === current.id)!;
-
-    const overtimeMinutes = getBlockOvertimeMinutes(currentCopy);
+    const overtimeMinutes = getBlockOvertimeMinutes(current);
     if (overtimeMinutes <= 0) return;
 
-    if (!nextSession.planReminderShown) {
-      nextSession.planReminderShown = true;
-      await saveAll(nextSession, nextBlocks, nextQueue);
+    const nextSession = { ...session };
+    const nextBlocks = blocks.map((b) => ({ ...b }));
+    const currentCopy = nextBlocks.find((b) => b.id === current.id)!;
+    const prevSlack = nextSession.slackRemainingMinutes;
+    const prevApplied = nextSession.overtimeDrainCycleIndex;
+    processOvertimeDrain(nextBlocks, currentCopy, nextSession, overtimeMinutes);
+    if (
+      nextSession.overtimeDrainCycleIndex === prevApplied &&
+      nextSession.slackRemainingMinutes === prevSlack
+    ) {
       return;
     }
-
-    nextQueue = processOvertimeDrain(
-      nextBlocks,
-      currentCopy,
-      nextSession,
-      nextQueue,
-      overtimeMinutes,
-    );
-    if (nextSession.overtimeDrainCycleIndex === session.overtimeDrainCycleIndex) return;
-
-    await saveAll(nextSession, nextBlocks, nextQueue);
-  }, [session, blocks, morningQueue, saveAll]);
+    await saveAll(nextSession, nextBlocks);
+  }, [session, blocks, saveAll]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -278,47 +239,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settings: settings!,
       session,
       blocks,
-      morningQueue,
-      refresh,
+      planDraft,
       updateSettings,
-      confirmRoute,
+      beginPlan,
+      setPlanTasks,
+      discardPlan,
+      confirmPlan,
+      startFirstBlock: startFirstBlockAction,
       landCurrentBlock,
-      toggleCurrentIncomplete,
-      applyPriorityOrder,
-      extendVoyage: extendVoyageOnce,
-      setMood,
-      resetToday,
-      planEpoch,
-      tickFlying,
-      finishFreeFly,
-      dismissCheckpoint,
+      startNextBlock: startNextBlockAction,
+      finishVoyage,
       cancelVoyage,
+      resetVoyage,
+      toggleCurrentIncomplete,
+      extendVoyage: extendVoyageAction,
+      tickFlying,
     }),
     [
       loading,
       settings,
       session,
       blocks,
-      morningQueue,
-      refresh,
+      planDraft,
       updateSettings,
-      confirmRoute,
+      beginPlan,
+      setPlanTasks,
+      discardPlan,
+      confirmPlan,
+      startFirstBlockAction,
       landCurrentBlock,
-      toggleCurrentIncomplete,
-      applyPriorityOrder,
-      extendVoyageOnce,
-      setMood,
-      resetToday,
-      planEpoch,
-      tickFlying,
-      finishFreeFly,
-      dismissCheckpoint,
+      startNextBlockAction,
+      finishVoyage,
       cancelVoyage,
+      resetVoyage,
+      toggleCurrentIncomplete,
+      extendVoyageAction,
+      tickFlying,
     ],
   );
 
   if (loading || !settings) {
-    return <div className="loading-screen">Time Flight 正在准备航程…</div>;
+    return <div className="loading-screen">Time Pilot 时光机长 正在准备航程…</div>;
   }
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

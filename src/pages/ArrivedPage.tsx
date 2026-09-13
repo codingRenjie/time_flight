@@ -1,0 +1,90 @@
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '@/context/AppContext';
+import { hasPendingBlocks } from '@/lib/sessionLogic';
+
+/** 页面06：任务进港页 */
+export function ArrivedPage() {
+  const navigate = useNavigate();
+  const { session, blocks, finishVoyage } = useApp();
+
+  useEffect(() => {
+    if (!session) navigate('/start', { replace: true });
+    else if (session.status === 'dayEnd') navigate('/complete', { replace: true });
+    else if (session.status === 'cancelled') navigate('/cancelled', { replace: true });
+    else if (session.status === 'flying' && session.currentBlockId) {
+      navigate(`/fly/${session.currentBlockId}`, { replace: true });
+    } else if (session.status !== 'betweenFlights') {
+      navigate('/start', { replace: true });
+    }
+  }, [session, navigate]);
+
+  if (!session || session.status !== 'betweenFlights') return null;
+
+  const landed = blocks.find((b) => b.id === session.lastLandedBlockId);
+  const hasNext = hasPendingBlocks(blocks);
+  const next = [...blocks]
+    .sort((a, b) => a.order - b.order)
+    .find((b) => b.status === 'planned' && b.remainingBudgetMinutes > 0);
+
+  const handleFinish = async () => {
+    await finishVoyage();
+    navigate('/complete', { replace: true });
+  };
+
+  return (
+    <div className="fullscreen-page arrived-page">
+      <div className="arrived-content">
+        <img
+          src="/assets/captain-thumbsup.png"
+          alt="机长点赞"
+          className="arrived-captain"
+        />
+        <div className="checkpoint-badge">🛬 任务进港</div>
+        <h1 className="arrived-title">{landed?.title ?? '本段任务'}</h1>
+
+        <div className="card arrived-card">
+          <div className="stat-row">
+            <div className="stat">
+              <div className="stat-label">计划用时</div>
+              <div className="stat-value">{landed?.originalPlannedMinutes ?? 0} 分钟</div>
+            </div>
+            <div className="stat">
+              <div className="stat-label">实际用时</div>
+              <div className="stat-value">{landed?.actualDurationMinutes ?? 0} 分钟</div>
+            </div>
+          </div>
+          {landed?.markedIncomplete && (
+            <p className="arrived-flag">已标记「未完成」，会在今日摘要中展示</p>
+          )}
+          {session.earlyLandBonusMinutes > 0 && (
+            <p className="arrived-bonus">
+              本次航程累计提前奖励 +{session.earlyLandBonusMinutes} 分钟，已分配给后续任务
+            </p>
+          )}
+          {hasNext && next && (
+            <p className="arrived-next">
+              下一项：{next.title} · {next.remainingBudgetMinutes} 分钟
+            </p>
+          )}
+        </div>
+
+        {hasNext ? (
+          <button
+            className="btn btn-primary btn-block btn-lg"
+            onClick={() => navigate('/next')}
+          >
+            开始下一个执飞任务
+          </button>
+        ) : (
+          <button
+            className="btn btn-primary btn-block btn-lg"
+            onClick={() => void handleFinish()}
+          >
+            已完成所有任务，结束航程 🎉
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

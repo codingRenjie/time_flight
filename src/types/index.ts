@@ -1,24 +1,36 @@
-export type BlockType = 'mandatory' | 'break' | 'study' | 'free' | 'terminal';
+/** 任务类型：mandatory = 固定任务（不可移除、不参与时间联动）；custom = 用户自建任务 */
+export type BlockType = 'mandatory' | 'custom';
 
-export type BlockStatus =
-  | 'planned'
-  | 'flying'
-  | 'landed'
-  | 'incomplete'
-  | 'queued_for_morning';
+export type BlockStatus = 'planned' | 'flying' | 'landed' | 'incomplete';
 
-export type SessionStatus = 'idle' | 'planning' | 'flying' | 'freeFly' | 'dayEnd' | 'cancelled';
+/**
+ * ready          航程已创建（页面03 按下"立即执飞"），等待页面04 推油门
+ * flying         有任务正在执飞（页面05）
+ * betweenFlights 一项任务刚进港，处于页面06/10 之间
+ * dayEnd         全部完成（页面08）
+ * cancelled      航程取消（页面07）
+ */
+export type SessionStatus = 'ready' | 'flying' | 'betweenFlights' | 'dayEnd' | 'cancelled';
 
-export type Mood = 'happy' | 'neutral' | 'upset';
+export type SoundType = 'engine' | 'rain' | 'snow' | 'waterfall' | 'campfire' | 'music';
 
-export interface BlockTemplate {
+export type ViewType = 'cockpit' | 'wing';
+
+export interface Aircraft {
   id: string;
-  type: 'mandatory' | 'break' | 'study';
+  /** 展示全名，如 庞巴迪 Challenger 650 */
+  name: string;
+  /** 短名，如 Challenger 650 */
+  shortName: string;
+  image: string;
+  unlocked: boolean;
+  unlockHint?: string;
+}
+
+export interface FixedTaskTemplate {
+  id: string;
   title: string;
   defaultDurationMinutes: number;
-  minimumDurationMinutes: number;
-  isDeletable: boolean;
-  isEnabled: boolean;
 }
 
 export interface Block {
@@ -27,43 +39,21 @@ export interface Block {
   type: BlockType;
   title: string;
   order: number;
+  /** 当前预算（随联动增减改写） */
   plannedDurationMinutes: number;
   remainingBudgetMinutes: number;
-  /** 本段起飞时快照的可用时长（含之前联动扣减后的剩余） */
+  /** 本段起飞时快照的可用时长 */
   activeBudgetMinutes: number | null;
-  minimumDurationMinutes: number;
   actualDurationMinutes: number | null;
   status: BlockStatus;
   startedAt: string | null;
   landedAt: string | null;
-  extendUsed: boolean;
-  queueNote: string | null;
-  /** 孩子在执飞中打的未完成标签；与是否提前/超时进港无关 */
   markedIncomplete: boolean;
-  /** 排航程时的计划分钟，不随后续补给/扣减改写 */
+  /** 排航程时的计划分钟，不随联动改写 */
   originalPlannedMinutes: number;
 }
 
-export interface SessionCheckpoint {
-  completedBlockId: string;
-  completedTitle: string;
-  nextBlockId: string | null;
-  nextTitle: string;
-  encouragement: string;
-  earlyBonusMinutes?: number;
-  markedIncomplete?: boolean;
-}
-
-export interface MorningQueueItem {
-  id: string;
-  date: string;
-  sourceBlockId: string;
-  content: string;
-  cleared: boolean;
-  clearedAt: string | null;
-}
-
-export interface EveningSession {
+export interface FlightSession {
   id: string;
   date: string;
   windowStart: string;
@@ -71,55 +61,61 @@ export interface EveningSession {
   windowStartAt: string;
   windowEndAt: string;
   status: SessionStatus;
-  freeMinutesBudget: number;
-  freeMinutesRemaining: number;
-  earlyLandBonusMinutes: number;
   currentBlockId: string | null;
-  confirmedAt: string | null;
-  endedAt: string | null;
-  mood: Mood | null;
-  /** 本段超时已联动扣掉的整分钟数（按后续航段顺序逐项扣） */
+  /** 刚进港的任务（页面06 展示用） */
+  lastLandedBlockId: string | null;
+  aircraftId: string;
+  /** 未分配余量：起飞时 航程总时长 - 任务总时长 */
+  slackRemainingMinutes: number;
+  /** 超时已吃掉的余量 */
+  slackDrainedMinutes: number;
+  /** 余量耗尽后，超时轮询扣减的进度 */
   overtimeDrainCycleIndex: number | null;
-  /** 下一分钟超时将扣减的联动航段 */
   overtimeDrainNextTargetId: string | null;
-  planReminderShown: boolean;
   voyageExtended: boolean;
-  checkpoint: SessionCheckpoint | null;
+  earlyLandBonusMinutes: number;
+  confirmedAt: string;
+  endedAt: string | null;
+}
+
+export interface AppStats {
+  completedVoyages: number;
+  totalFlownMinutes: number;
 }
 
 export interface AppSettings {
+  /** 页面01 的默认时间 */
   windowStart: string;
   windowEnd: string;
-  freeFlyForceStart: string;
+  aircrafts: Aircraft[];
+  selectedAircraftId: string;
+  fixedTasks: FixedTaskTemplate[];
+  voyageExtendEnabled: boolean;
   voyageExtendMinutes: number;
-  demoMode: boolean;
-  templates: BlockTemplate[];
+  soundType: SoundType;
+  soundVolume: number;
+  viewType: ViewType;
+  stats: AppStats;
 }
 
-export interface DaySummary {
-  sessionId: string;
-  date: string;
-  blocksCompleted: number;
-  mandatoryDone: boolean;
-  freeFlyMinutesUsed: number;
-  earlyLandBonusMinutes: number;
-  morningQueueCount: number;
-  mood: Mood | null;
-}
-
-export interface PlanBlockDraft {
+/** 页面01→02→03 期间的规划草稿（仅内存，不落库） */
+export interface PlanTaskDraft {
   id: string;
-  templateId: string;
+  templateId: string | null;
   type: BlockType;
   title: string;
   plannedDurationMinutes: number;
-  minimumDurationMinutes: number;
-  isDeletable: boolean;
+  isFixed: boolean;
+}
+
+export interface PlanDraft {
+  windowStart: string;
+  windowEnd: string;
+  tasks: PlanTaskDraft[];
 }
 
 export interface AppState {
   settings: AppSettings;
-  session: EveningSession | null;
+  session: FlightSession | null;
   blocks: Block[];
-  morningQueue: MorningQueueItem[];
 }

@@ -1,19 +1,21 @@
-import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { AppProvider, useApp } from '@/context/AppContext';
-import { EveningLayout } from '@/pages/EveningLayout';
-import { EveningPage } from '@/pages/EveningPage';
-import { EveningOrderPage } from '@/pages/EveningOrderPage';
+import { StartPage } from '@/pages/StartPage';
+import { PlanPage } from '@/pages/PlanPage';
+import { OrderPage } from '@/pages/OrderPage';
+import { TakeoffPage } from '@/pages/TakeoffPage';
 import { FlyPage } from '@/pages/FlyPage';
-import { FreePage } from '@/pages/FreePage';
-import { LandPage } from '@/pages/LandPage';
-import { CheckpointPage } from '@/pages/CheckpointPage';
+import { ArrivedPage } from '@/pages/ArrivedPage';
+import { NextTakeoffPage } from '@/pages/NextTakeoffPage';
 import { CancelledPage } from '@/pages/CancelledPage';
+import { CompletePage } from '@/pages/CompletePage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import '@/styles/global.css';
 
+/** 会话状态路由守卫：刷新/重开时把用户带回正确的页面 */
 function SessionRouter() {
-  const { session, blocks, tickFlying } = useApp();
+  const { session, tickFlying } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,75 +25,61 @@ function SessionRouter() {
   }, [tickFlying]);
 
   useEffect(() => {
-    if (!session) return;
-    if (session.status === 'cancelled') {
-      if (location.pathname !== '/cancelled' && location.pathname !== '/settings') {
-        navigate('/cancelled', { replace: true });
+    const path = location.pathname;
+    // 设置页任何时候都可以停留
+    if (path === '/settings') return;
+
+    if (!session) {
+      // 无航程：只允许规划流程的三个页面
+      if (path !== '/start' && path !== '/plan' && path !== '/order') {
+        navigate('/start', { replace: true });
       }
       return;
     }
-    if (session.checkpoint) {
-      navigate('/checkpoint', { replace: true });
-      return;
+    switch (session.status) {
+      case 'cancelled':
+        if (path !== '/cancelled') navigate('/cancelled', { replace: true });
+        break;
+      case 'dayEnd':
+        if (path !== '/complete') navigate('/complete', { replace: true });
+        break;
+      case 'ready':
+        if (path !== '/takeoff') navigate('/takeoff', { replace: true });
+        break;
+      case 'flying':
+        if (session.currentBlockId && path !== `/fly/${session.currentBlockId}`) {
+          navigate(`/fly/${session.currentBlockId}`, { replace: true });
+        }
+        break;
+      case 'betweenFlights':
+        if (path !== '/arrived' && path !== '/next') {
+          navigate('/arrived', { replace: true });
+        }
+        break;
     }
-    if (session.status === 'dayEnd') {
-      navigate('/land', { replace: true });
-      return;
-    }
-    if (session.status === 'freeFly') {
-      navigate('/free', { replace: true });
-      return;
-    }
-    if (session.status === 'flying' && session.currentBlockId) {
-      const current = blocks.find((b) => b.id === session.currentBlockId);
-      if (current?.type === 'free') {
-        navigate('/free', { replace: true });
-      } else if (current && current.type !== 'terminal') {
-        navigate(`/fly/${current.id}`, { replace: true });
-      }
-    }
-  }, [session, blocks, navigate, location.pathname]);
+  }, [session, navigate, location.pathname]);
 
   return null;
-}
-
-function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="app-shell">
-      <header className="app-header">
-        <Link to="/evening" className="brand">
-          Time Flight
-        </Link>
-        <nav>
-          <Link to="/evening">航程</Link>
-          <Link to="/settings">设置</Link>
-        </nav>
-      </header>
-      <main className="app-main">{children}</main>
-    </div>
-  );
 }
 
 function AppRoutes() {
   return (
     <>
       <SessionRouter />
-      <Layout>
-        <Routes>
-          <Route path="/" element={<Navigate to="/evening" replace />} />
-          <Route path="/start.html" element={<Navigate to="/evening" replace />} />
-          <Route path="/evening" element={<EveningLayout />}>
-            <Route index element={<EveningPage />} />
-            <Route path="order" element={<EveningOrderPage />} />
-          </Route>
-          <Route path="/fly/:blockId" element={<FlyPage />} />
-          <Route path="/free" element={<FreePage />} />
-          <Route path="/checkpoint" element={<CheckpointPage />} />
-          <Route path="/land" element={<LandPage />} />
-          <Route path="/cancelled" element={<CancelledPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        <Route path="/" element={<Navigate to="/start" replace />} />
+        <Route path="/start" element={<StartPage />} />
+        <Route path="/plan" element={<PlanPage />} />
+        <Route path="/order" element={<OrderPage />} />
+        <Route path="/takeoff" element={<TakeoffPage />} />
+        <Route path="/fly/:blockId" element={<FlyPage />} />
+        <Route path="/arrived" element={<ArrivedPage />} />
+        <Route path="/next" element={<NextTakeoffPage />} />
+        <Route path="/cancelled" element={<CancelledPage />} />
+        <Route path="/complete" element={<CompletePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/start" replace />} />
+      </Routes>
     </>
   );
 }

@@ -1,5 +1,5 @@
 :root {
-  --bg: #0f172a;
+  --bg: #0b1120;
   --bg-card: #1e293b;
   --bg-soft: #334155;
   --text: #f8fafc;
@@ -9,7 +9,6 @@
   --success: #4ade80;
   --warn: #fbbf24;
   --danger: #f87171;
-  --break: #a78bfa;
   --radius: 16px;
   --touch: 48px;
   font-family: 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', sans-serif;
@@ -21,6 +20,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -39,6 +39,11 @@ select {
   font: inherit;
 }
 
+button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .loading-screen {
   min-height: 100vh;
   display: grid;
@@ -46,57 +51,49 @@ select {
   color: var(--text-muted);
 }
 
-.app-shell {
-  min-height: 100vh;
+/* ---------- 布局：标准页（手机竖屏优先） ---------- */
+
+.page {
+  width: min(480px, 100%);
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: calc(8px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
 }
 
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+.page-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  background: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(8px);
+  padding: 8px 0 16px;
 }
 
-.brand {
+.topbar-title {
   font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--text);
-}
-
-.app-header nav {
-  display: flex;
-  gap: 16px;
-}
-
-.app-main {
-  flex: 1;
-  width: min(920px, 100%);
-  margin: 0 auto;
-  padding: 20px 16px 40px;
-}
-
-.evening-page {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  font-size: 1.05rem;
 }
 
 .page-title {
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  margin: 0 0 8px;
+  font-size: clamp(1.6rem, 6vw, 2rem);
+  margin: 0 0 4px;
 }
 
 .page-subtitle {
   color: var(--text-muted);
   margin: 0 0 24px;
+}
+
+.page-step {
+  margin: 0 0 4px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.page-actions {
+  margin-top: auto;
+  padding-top: 24px;
 }
 
 .card {
@@ -107,221 +104,30 @@ select {
   margin-bottom: 16px;
 }
 
-.fuel-bar {
-  height: 12px;
-  background: var(--bg-soft);
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 12px 0;
-}
-
-.fuel-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
-  transition: width 0.3s ease;
-}
-
-.fuel-bar-fill.danger {
-  background: var(--danger);
-}
-
-.fuel-sticky {
-  position: sticky;
-  top: 52px;
-  z-index: 20;
-  background: rgba(30, 41, 59, 0.96);
-}
-
-.fuel-sticky.is-overflow {
-  border-color: rgba(248, 113, 113, 0.45);
-}
-
-.fuel-help,
-.fuel-overflow-hint,
-.route-hint {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin: 0;
-}
-
-.fuel-overflow-hint {
-  color: var(--danger);
-}
-
-.route-hint {
-  margin: -8px 0 12px;
-}
-
-.stat-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.stat {
-  background: var(--bg-soft);
+.icon-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
   border-radius: 12px;
-  padding: 12px 16px;
-  min-width: 140px;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.stat-value {
-  font-size: 1.4rem;
-  font-weight: 700;
-}
-
-.review-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.review-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.review-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.review-main {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  text-align: left;
-}
-
-.review-title {
-  font-weight: 600;
-}
-
-.review-time {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.review-flag {
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.review-item.is-done .review-flag {
-  color: var(--success);
-}
-
-.review-item.is-incomplete .review-flag {
-  color: var(--warn);
-}
-
-.route-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.route-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  margin-bottom: 8px;
   background: var(--bg-soft);
-  border-radius: 12px;
-  border: 1px solid transparent;
-  transition: transform 0.18s ease;
-}
-
-.route-list.is-sorting {
-  touch-action: none;
-}
-
-.route-list.is-sorting .btn {
-  pointer-events: none;
-}
-
-.route-item.incomplete {
-  opacity: 0.55;
-  border-color: rgba(248, 113, 113, 0.4);
-}
-
-.route-item.mandatory {
-  border-color: rgba(56, 189, 248, 0.35);
-}
-
-.route-item.break {
-  border-color: rgba(167, 139, 250, 0.35);
-}
-
-.route-item.free {
-  border-style: dashed;
-}
-
-.drag-handle {
+  color: var(--text);
+  font-size: 1.25rem;
+  cursor: pointer;
   display: grid;
   place-items: center;
-  min-width: 44px;
-  min-height: 44px;
-  margin: -6px 0;
-  cursor: grab;
-  color: var(--text-muted);
-  user-select: none;
-  touch-action: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
 }
 
-.drag-handle.is-static {
-  cursor: default;
-  touch-action: auto;
+.icon-btn.glass {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(248, 250, 252, 0.14);
 }
 
-.route-item.dragging {
-  z-index: 5;
-  position: relative;
-  opacity: 1;
-  border-color: var(--accent);
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.4);
-  transition: none;
-  cursor: grabbing;
+.icon-btn:disabled {
+  opacity: 0.4;
 }
 
-.route-item.dragging .drag-handle {
-  cursor: grabbing;
-}
-
-.route-meta {
-  flex: 1;
-}
-
-.route-title {
-  font-weight: 600;
-}
-
-.route-duration {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.badge {
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(56, 189, 248, 0.2);
-  color: var(--accent);
-}
+/* ---------- 按钮 ---------- */
 
 .btn {
   min-height: var(--touch);
@@ -363,6 +169,16 @@ select {
   cursor: not-allowed;
 }
 
+.btn-lg {
+  min-height: 56px;
+  font-size: 1.1rem;
+  border-radius: 14px;
+}
+
+.btn-block {
+  width: 100%;
+}
+
 .btn-row {
   display: flex;
   gap: 12px;
@@ -370,234 +186,271 @@ select {
   margin-top: 16px;
 }
 
-.btn-block {
-  width: 100%;
-}
-
-.cancel-voyage-btn {
-  display: block;
-  margin: 40px auto 0;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  color: rgba(148, 163, 184, 0.38);
+.badge {
   font-size: 0.75rem;
-  font-weight: 400;
-  cursor: pointer;
-}
-
-.cancel-voyage-btn:hover,
-.cancel-voyage-btn:focus-visible {
-  color: rgba(148, 163, 184, 0.7);
-}
-
-.cancelled-screen {
-  min-height: 55vh;
-  display: grid;
-  place-items: center;
-}
-
-.cancelled-screen h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.fly-screen {
-  text-align: center;
-  padding: 24px 0;
-}
-
-.fly-screen.break-mode {
-  background: rgba(167, 139, 250, 0.08);
-  border-radius: var(--radius);
-}
-
-.fly-title {
-  font-size: 1.2rem;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.fly-timer {
-  font-size: clamp(3rem, 12vw, 5rem);
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  font-variant-numeric: tabular-nums;
-  margin: 16px 0;
-}
-
-.fly-hint {
-  color: var(--warn);
-  min-height: 24px;
-  margin-bottom: 16px;
-}
-
-.budget-grid {
-  display: grid;
-  gap: 10px;
-  margin-top: 24px;
-  text-align: left;
-}
-
-.budget-item label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-}
-
-.budget-track {
-  height: 8px;
-  background: var(--bg-soft);
+  padding: 2px 8px;
   border-radius: 999px;
+  background: rgba(56, 189, 248, 0.2);
+  color: var(--accent);
+}
+
+/* ---------- 全屏沉浸页（04/05/07/08/10） ---------- */
+
+.fullscreen-page {
+  position: relative;
+  min-height: 100dvh;
   overflow: hidden;
 }
 
-.budget-fill {
-  height: 100%;
-  background: var(--accent);
-  transition: width 0.3s ease;
+.fullscreen-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(16px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom));
+  width: min(480px, 100%);
+  margin: 0 auto;
 }
 
-.budget-fill.danger {
-  background: var(--danger);
-}
-
-.modal-backdrop {
-  position: fixed;
+.sky-bg {
+  position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.75);
+  z-index: 0;
+  overflow: hidden;
+}
+
+.sky-bg-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sky-bg-kenburns {
+  animation: kenburns 36s ease-in-out infinite alternate;
+}
+
+@keyframes kenburns {
+  from {
+    transform: scale(1.02) translate(0, 0);
+  }
+  to {
+    transform: scale(1.14) translate(-1.5%, -2.5%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky-bg-kenburns {
+    animation: none;
+  }
+}
+
+.sky-bg-overlay {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- 页面01：航程开始 ---------- */
+
+.start-hero {
+  text-align: center;
+  margin: 24px 0 28px;
+}
+
+.start-plane {
+  font-size: 3rem;
+  margin-bottom: 8px;
+  animation: floaty 3.2s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.wheel-row {
+  display: flex;
+  gap: 16px;
+}
+
+.wheel-field {
+  flex: 1;
+  text-align: center;
+}
+
+.wheel-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.wheel-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.wheel-col {
+  position: relative;
+  height: 220px;
+  width: 76px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
+}
+
+.wheel-scroll {
+  height: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.wheel-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.wheel-item {
   display: grid;
   place-items: center;
-  padding: 16px;
-  z-index: 100;
-}
-
-.modal {
-  width: min(480px, 100%);
-  background: var(--bg-card);
-  border-radius: var(--radius);
-  padding: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.15);
-}
-
-.modal h2 {
-  margin-top: 0;
-}
-
-.mood-row {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin: 20px 0;
-}
-
-.mood-btn {
-  font-size: 2rem;
-  background: var(--bg-soft);
-  border: 2px solid transparent;
-  border-radius: 16px;
-  width: 72px;
-  height: 72px;
+  scroll-snap-align: center;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
-.mood-btn.selected {
-  border-color: var(--accent);
+.wheel-item.is-selected {
+  color: var(--text);
+  font-weight: 700;
 }
 
-.checkpoint-screen {
-  text-align: center;
-  padding: 32px 0 16px;
-  animation: fadeUp 0.45s ease;
+.wheel-highlight {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  pointer-events: none;
 }
 
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.checkpoint-badge {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(74, 222, 128, 0.15);
-  color: var(--success);
-  font-weight: 600;
-  margin-bottom: 12px;
-}
-
-.checkpoint-encourage {
-  font-size: 1.15rem;
-  color: var(--accent);
-  margin: 0 0 24px;
-}
-
-.checkpoint-card {
-  max-width: 420px;
-  margin: 0 auto 16px;
-  text-align: center;
-}
-
-.checkpoint-next {
+.wheel-sep {
   font-size: 1.5rem;
   font-weight: 700;
-  margin: 8px 0 0;
+  color: var(--text-muted);
 }
 
-.checkpoint-stat {
-  margin: 0;
-  font-size: 1.05rem;
+.start-total {
+  text-align: center;
+  margin: 16px 0 8px;
+  color: var(--text-muted);
 }
 
-.checkpoint-btn {
-  max-width: 420px;
-  margin: 24px auto 0;
-}
-
-.rigid-break .badge {
-  background: rgba(167, 139, 250, 0.2);
-  color: var(--break);
-}
-
-.evening-plan-col {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-}
-
-.page-step {
-  margin: 0 0 4px;
+.start-total strong {
   color: var(--accent);
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1.15rem;
 }
 
-.evening-order-actions {
-  margin-top: 16px;
+.start-warning {
+  color: var(--danger);
+  font-size: 0.9rem;
+  margin-top: 6px;
 }
 
-.evening-order-actions .btn-primary {
+.switch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 0;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.switch-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+/* ---------- 页面02：航程设定 ---------- */
+
+.aircraft-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.aircraft-img {
+  width: 72px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--bg-soft);
+}
+
+.aircraft-meta {
   flex: 1;
 }
 
-.task-pool {
-  border-color: rgba(56, 189, 248, 0.22);
+.aircraft-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.aircraft-name {
+  font-weight: 700;
+}
+
+.aircraft-change {
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.fuel-summary {
+  text-align: center;
+}
+
+.fuel-summary.is-overflow {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.fuel-line {
+  color: var(--text-muted);
+}
+
+.fuel-line strong {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.fuel-line.danger,
+.fuel-line.danger strong {
+  color: var(--danger);
 }
 
 .pool-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 10px;
 }
 
@@ -605,48 +458,30 @@ select {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 28px 12px 12px;
+  gap: 10px;
+  padding: 14px 12px;
   background: var(--bg-soft);
-  border-radius: 12px;
+  border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
-.pool-delete {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: #64748b;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0.65;
-}
-
-.pool-delete:active {
-  opacity: 1;
-}
-
 .pool-card.is-new {
-  padding: 12px;
   border-style: dashed;
-  border-color: rgba(56, 189, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.pool-card.is-fixed {
+  border-color: rgba(56, 189, 248, 0.3);
 }
 
 .pool-title {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  gap: 4px;
-  min-width: 0;
+  gap: 6px;
   font-weight: 600;
   font-size: 0.95rem;
+  min-height: 24px;
 }
 
 .pool-name-text {
@@ -656,32 +491,7 @@ select {
   white-space: nowrap;
 }
 
-.pool-title .pool-flag {
-  margin-left: auto;
-  flex: 0 0 auto;
-  font-size: 0.62rem;
-  padding: 1px 5px;
-  font-weight: 600;
-}
-
-.pool-in-plan {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  background: #4ade80;
-  color: #0f172a;
-  font-size: 11px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.pool-name,
-.pool-time input {
-  font: inherit;
+.pool-name {
   width: 100%;
   background: rgba(15, 23, 42, 0.55);
   color: var(--text);
@@ -690,17 +500,14 @@ select {
   padding: 8px 10px;
 }
 
-.pool-time {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.pool-time input {
-  width: 4.5rem;
-  flex: 0 0 auto;
+.pool-locked {
+  margin: 0;
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .pool-card .btn {
@@ -709,13 +516,694 @@ select {
   font-size: 0.9rem;
 }
 
-.pool-locked {
-  margin: 0;
-  min-height: 40px;
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.stepper-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--accent);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stepper-btn:disabled {
+  opacity: 0.35;
+}
+
+.stepper-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.aircraft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.aircraft-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: var(--bg-soft);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.aircraft-option img {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.aircraft-option > div {
+  flex: 1;
+}
+
+.aircraft-option.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.aircraft-option.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.aircraft-option.is-locked img {
+  filter: grayscale(1) brightness(0.7);
+}
+
+.aircraft-lock {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.aircraft-check {
+  color: var(--accent);
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+/* ---------- 页面03：任务顺序 ---------- */
+
+.order-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.order-total {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.route-hint {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0 0 12px;
+  text-align: center;
+}
+
+.drag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drag-list.is-sorting {
+  touch-action: none;
+}
+
+.drag-item {
+  border-radius: 14px;
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg-soft);
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.route-item.mandatory {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.drag-item.dragging .route-item {
+  border-color: var(--accent);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+}
+
+.drag-handle {
   display: grid;
   place-items: center;
-  color: #64748b;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -8px 0;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+
+.route-meta {
+  flex: 1;
+}
+
+.route-title {
+  font-weight: 600;
+}
+
+.route-duration {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* ---------- 页面04：起飞油门 ---------- */
+
+.takeoff-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.takeoff-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.8rem;
+}
+
+.takeoff-header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.throttle-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.throttle-hint-arrows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--accent);
+  font-size: 1.6rem;
+  line-height: 1;
+  animation: arrow-bounce 1.2s ease-in-out infinite;
+}
+
+@keyframes arrow-bounce {
+  0%,
+  100% {
+    transform: translateY(6px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.throttle-track {
+  position: relative;
+  width: 88px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  overflow: visible;
+  touch-action: none;
+  cursor: grab;
+}
+
+.throttle-track.is-dragging {
+  cursor: grabbing;
+}
+
+.throttle-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 999px;
+  background: linear-gradient(0deg, var(--accent-dim), var(--accent));
+  opacity: 0.55;
+  transition: height 0.05s linear;
+}
+
+.throttle-knob {
+  position: absolute;
+  left: 50%;
+  margin-left: -36px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #e2e8f0, #94a3b8);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+}
+
+.throttle-track.is-complete .throttle-knob {
+  background: linear-gradient(145deg, var(--accent), var(--accent-dim));
+}
+
+.throttle-knob-grip {
+  width: 44px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.35);
+  box-shadow:
+    0 -14px 0 rgba(15, 23, 42, 0.35),
+    0 14px 0 rgba(15, 23, 42, 0.35);
+}
+
+.throttle-label {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ---------- 页面05：执飞过程 ---------- */
+
+.fly-topbar {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+}
+
+.fly-topbar-group {
+  display: flex;
+  gap: 10px;
+}
+
+.fly-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  width: min(480px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 90px 20px calc(28px + env(safe-area-inset-bottom));
+}
+
+.fly-flightno {
+  color: rgba(248, 250, 252, 0.75);
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+}
+
+.fly-task-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.circular-timer {
+  position: relative;
+  width: 260px;
+  height: 260px;
+}
+
+.circular-timer-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+}
+
+.ct-label {
+  color: rgba(248, 250, 252, 0.75);
+  font-size: 0.9rem;
+}
+
+.ct-main {
+  font-size: 3.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+.ct-main.overtime {
+  color: var(--danger);
+}
+
+.ct-sub {
+  color: rgba(248, 250, 252, 0.65);
   font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.fly-hint {
+  min-height: 26px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.fly-hint-ok {
+  color: var(--success);
+}
+
+.fly-hint-warn {
+  color: var(--warn);
+}
+
+.fly-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.fly-actions .btn-primary {
+  flex: 1;
+}
+
+/* ---------- 弹窗 ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 24, 0.72);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 100;
+  animation: fade-in 0.18s ease;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.modal {
+  width: min(420px, 100%);
+  max-height: 80dvh;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  animation: fade-up 0.25s ease;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.modal h2 {
+  margin-top: 0;
+}
+
+.sound-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sound-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: var(--bg-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.sound-option.is-selected {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.volume-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.volume-row input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+/* ---------- 页面06：任务进港 ---------- */
+
+.arrived-page {
+  background: radial-gradient(circle at 50% 20%, #1e3a5f 0%, var(--bg) 60%);
+}
+
+.arrived-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100dvh;
+  width: min(480px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + env(safe-area-inset-top)) 20px calc(32px + env(safe-area-inset-bottom));
+  animation: fade-up 0.45s ease;
+}
+
+.arrived-captain {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(74, 222, 128, 0.5);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: floaty 3.6s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+.checkpoint-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.15);
+  color: var(--success);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.arrived-title {
+  margin: 0 0 18px;
+  font-size: 1.5rem;
+}
+
+.arrived-card {
+  width: 100%;
+}
+
+.arrived-flag {
+  color: var(--warn);
+  font-size: 0.9rem;
+  margin: 12px 0 0;
+}
+
+.arrived-bonus {
+  color: var(--success);
+  font-size: 0.9rem;
+  margin: 12px 0 0;
+}
+
+.arrived-next {
+  color: var(--text-muted);
+  margin: 12px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.arrived-content .btn-block {
+  margin-top: 8px;
+}
+
+/* ---------- 页面07：航程取消 ---------- */
+
+.cancelled-content {
+  text-align: center;
+}
+
+.cancelled-title {
+  font-size: 1.6rem;
+  margin: 0 0 8px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.cancelled-sub {
+  color: rgba(248, 250, 252, 0.75);
+  margin: 0 0 32px;
+}
+
+/* ---------- 页面08：全部完成 ---------- */
+
+.complete-content {
+  justify-content: flex-start;
+  padding-top: calc(48px + env(safe-area-inset-top));
+}
+
+.complete-title {
+  font-size: 1.5rem;
+  margin: 0 0 20px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.complete-card {
+  width: 100%;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.complete-rate {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.complete-rate-value {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.complete-stats {
+  justify-content: center;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  background: rgba(51, 65, 85, 0.8);
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-width: 72px;
+  flex: 1;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.review-item:last-child {
+  border-bottom: none;
+}
+
+.review-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.review-title {
+  font-weight: 600;
+}
+
+.review-time {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.review-flag {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.review-item.is-done .review-flag {
+  color: var(--success);
+}
+
+.review-item.is-incomplete .review-flag {
+  color: var(--warn);
+}
+
+/* ---------- 页面09：系统设置 ---------- */
+
+.settings-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.settings-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(56, 189, 248, 0.5);
+}
+
+.settings-name {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.settings-stats {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.settings-section-title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.settings-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin: 8px 0 0;
 }
 
 .settings-fixed-row,
@@ -724,28 +1212,15 @@ select {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   padding: 10px 12px;
   background: var(--bg-soft);
   border-radius: 12px;
 }
 
 .settings-fixed-name {
-  flex: 1 1 140px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  flex: 1 1 100px;
   font-weight: 600;
-}
-
-.settings-fixed-row input[type='number'],
-.settings-fixed-add input[type='number'] {
-  width: 4.5rem;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(15, 23, 42, 0.55);
-  color: var(--text);
 }
 
 .settings-fixed-delete {
@@ -757,48 +1232,52 @@ select {
   background: transparent;
   color: #64748b;
   font-size: 18px;
-  line-height: 1;
   cursor: pointer;
 }
 
 .settings-fixed-add .pool-name {
-  flex: 1 1 140px;
+  flex: 1 1 120px;
   width: auto;
 }
 
-.settings-fixed-add select {
-  padding: 8px 10px;
-  border-radius: 8px;
+.settings-extend-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: var(--text-muted);
+}
+
+/* ---------- 页面10：再次起飞 ---------- */
+
+.next-page {
+  text-align: center;
+}
+
+.next-task-title {
+  font-size: 2rem;
+  margin: 4px 0;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+.next-task-duration {
+  font-size: 1.2rem;
+  color: rgba(248, 250, 252, 0.8);
+  margin: 0 0 40px;
+}
+
+.cancel-voyage-btn {
+  display: block;
+  margin: 32px auto 0;
+  padding: 8px 12px;
   border: none;
-  background: rgba(15, 23, 42, 0.55);
-  color: var(--text);
+  background: none;
+  color: rgba(248, 250, 252, 0.45);
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
-@media (min-width: 768px) {
-  .evening-grid {
-    display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    gap: 20px;
-    align-items: start;
-  }
-
-  .fuel-sticky {
-    top: 72px;
-  }
-}
-
-@media (max-width: 767px) {
-  .app-header nav {
-    gap: 12px;
-    font-size: 0.95rem;
-  }
-
-  .fuel-help {
-    display: none;
-  }
-
-  .fuel-sticky {
-    padding: 12px 16px;
-    margin-bottom: 12px;
-  }
+.cancel-voyage-btn:hover {
+  color: rgba(248, 250, 252, 0.75);
 }

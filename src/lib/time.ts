@@ -23,29 +23,20 @@ export function todayDateString(): string {
 export function getWindowBounds(
   windowStart: string,
   windowEnd: string,
-  demoMode: boolean,
   reference = new Date(),
 ): { windowStartAt: Date; windowEndAt: Date; totalMinutes: number } {
-  if (demoMode) {
-    const windowStartAt = new Date(reference);
-    const windowEndAt = new Date(reference.getTime() + 120 * 60 * 1000);
-    return { windowStartAt, windowEndAt, totalMinutes: 120 };
-  }
-
   const startMin = parseTimeToMinutes(windowStart);
   const endMin = parseTimeToMinutes(windowEnd);
   const windowStartAt = new Date(reference);
   windowStartAt.setHours(Math.floor(startMin / 60), startMin % 60, 0, 0);
   const windowEndAt = new Date(reference);
   windowEndAt.setHours(Math.floor(endMin / 60), endMin % 60, 0, 0);
+  // 结束时间早于开始时间视为跨午夜
   if (windowEndAt <= windowStartAt) {
     windowEndAt.setDate(windowEndAt.getDate() + 1);
   }
-  return {
-    windowStartAt,
-    windowEndAt,
-    totalMinutes: endMin - startMin,
-  };
+  const totalMinutes = Math.round((windowEndAt.getTime() - windowStartAt.getTime()) / 60000);
+  return { windowStartAt, windowEndAt, totalMinutes };
 }
 
 export function minutesUntil(iso: string, now = Date.now()): number {

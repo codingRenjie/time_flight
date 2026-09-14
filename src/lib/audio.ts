@@ -244,6 +244,47 @@ class AudioManager {
     this.active = null;
   }
 
+  /**
+   * 推杆段落感：短促的机械「咔哒」声。
+   * iOS Safari 无震动 API，用它做推杆档位的替代触觉反馈；
+   * 音调随推杆位置升高，营造「越推越紧」的机械感。
+   */
+  tick(intensity = 0.5): void {
+    if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise('white');
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1600 + intensity * 2600;
+    bp.Q.value = 5;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.3, t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    src.connect(bp).connect(g).connect(this.master);
+    src.start(t, Math.random() * 2.5, 0.08);
+  }
+
+  /** 起飞锁定确认：低沉的「哐」声（iOS 替代震动的完成反馈） */
+  thunk(): void {
+    if (!this.ctx || !this.master || this.ctx.state !== 'running') return;
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise('brown');
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 400;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.9, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    src.connect(lp).connect(g).connect(this.master);
+    src.start(t, Math.random() * 2.5, 0.3);
+  }
+
   /** 页面05 → 06 进港时暂停（保留现场，再次起飞时恢复） */
   pause(): void {
     if (this.ctx?.state === 'running') void this.ctx.suspend();

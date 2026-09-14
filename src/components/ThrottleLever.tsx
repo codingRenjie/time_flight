@@ -1,8 +1,28 @@
 import { useRef, useState } from 'react';
+import { audioManager } from '@/lib/audio';
 
 const TRACK_H = 280;
 /** 推过 90% 即视为起飞：真实手指很难精确停在 100% */
 const COMPLETE_THRESHOLD = 0.9;
+/** 每 10% 一个机械档位，跨档时给段落感反馈 */
+const DETENTS = 10;
+
+/**
+ * 档位反馈：Android Chrome 震动；iOS Safari 无震动 API，用咔哒声替代。
+ * （桌面 Chrome 的 vibrate 返回 false，同样落到音效分支，方便开发时验证）
+ */
+function fireDetentFeedback(intensity: number): void {
+  if (navigator.vibrate?.(12) !== true) {
+    audioManager.tick(intensity);
+  }
+}
+
+/** 起飞确认反馈：安卓三段震动 / iOS 低沉「哐」声 */
+function fireCompleteFeedback(): void {
+  if (navigator.vibrate?.([30, 60, 80]) !== true) {
+    audioManager.thunk();
+  }
+}
 
 /**
  * 页面04 起飞油门推杆。
@@ -27,6 +47,7 @@ export function ThrottleLever({
   const [completed, setCompleted] = useState(false);
   const completedRef = useRef(false);
   const completeTimer = useRef<number | null>(null);
+  const lastDetentRef = useRef(0);
 
   const setP = (p: number) => {
     progressRef.current = p;
@@ -37,7 +58,7 @@ export function ThrottleLever({
     if (completedRef.current) return;
     completedRef.current = true;
     setCompleted(true);
-    navigator.vibrate?.(40);
+    fireCompleteFeedback();
     onComplete();
   };
 
@@ -51,6 +72,12 @@ export function ThrottleLever({
   const applyProgress = (p: number) => {
     setP(p);
     onProgress?.(p);
+    // 跨过档位时给段落感反馈（震动或咔哒声，音调随档位升高）
+    const detent = Math.round(p * DETENTS);
+    if (detent !== lastDetentRef.current) {
+      lastDetentRef.current = detent;
+      fireDetentFeedback(detent / DETENTS);
+    }
     if (p >= COMPLETE_THRESHOLD && completeTimer.current === null) {
       // 推到阈值后停顿 0.5s 自动起飞
       completeTimer.current = window.setTimeout(complete, 500);
@@ -94,8 +121,9 @@ export function ThrottleLever({
       complete();
       return;
     }
-    // 弹回底部（CSS transition 生效）
+    // 弹回底部（CSS transition 生效），静默复位档位，不触发反馈
     setP(0);
+    lastDetentRef.current = 0;
     onProgress?.(0);
   };
 

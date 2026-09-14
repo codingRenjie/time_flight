@@ -1,4 +1,7 @@
 :root {
+  /* 移动端优化：禁用双击缩放（保留平移滚动），防止下拉刷新/回弹干扰手势 */
+  touch-action: manipulation;
+  overscroll-behavior: none;
   --bg: #0b1120;
   --bg-card: #1e293b;
   --bg-soft: #334155;

@@ -5,3 +5,6 @@ dist
 .tmp
 *.tsbuildinfo
 pilot perspective
+
+# 灵感素材（含大体积录屏，仅本地保留）
+UI inspire/

@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -16,6 +17,8 @@ import type {
 } from '@/types';
 import { clearSession, loadFullState, persistState, replaceSession, saveSettings } from '@/lib/db';
 import { createDefaultPlanTasks } from '@/lib/defaults';
+import { audioManager } from '@/lib/audio';
+import { acquireScreenWakeLock, releaseScreenWakeLock } from '@/lib/wakeLock';
 import { getBlockOvertimeMinutes } from '@/lib/time';
 import {
   cancelVoyage as markCancelled,
@@ -79,6 +82,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  /* ---------- 陪伴体验：执飞期间屏幕常亮 + 回到前台恢复音频 ---------- */
+
+  const flyingNow = session?.status === 'flying';
+  const shouldHoldWakeLock = flyingNow && (settings?.keepScreenOn ?? false);
+  // 用 ref 让常驻 visibilitychange 监听读到最新状态
+  const flyingRef = useRef(flyingNow);
+  flyingRef.current = flyingNow;
+  const holdRef = useRef(shouldHoldWakeLock);
+  holdRef.current = shouldHoldWakeLock;
+
+  useEffect(() => {
+    if (shouldHoldWakeLock) void acquireScreenWakeLock();
+    else void releaseScreenWakeLock();
+  }, [shouldHoldWakeLock]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      // Wake Lock 在页面隐藏时被系统释放，回到前台重新申请
+      if (holdRef.current) void acquireScreenWakeLock();
+      // 执飞中被系统打断的背景音在此恢复（进港/结束页不恢复）
+      if (flyingRef.current) audioManager.resume();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   const saveAll = useCallback(
     async (nextSession: FlightSession | null, nextBlocks: Block[]) => {

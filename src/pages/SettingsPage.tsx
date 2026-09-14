@@ -140,6 +140,23 @@ export function SettingsPage() {
       </section>
 
       <section className="card">
+        <h3 className="settings-section-title">🔆 陪伴体验</h3>
+        <label className="switch-row">
+          <input
+            type="checkbox"
+            checked={settings.keepScreenOn}
+            onChange={(e) =>
+              void updateSettings({ ...settings, keepScreenOn: e.target.checked })
+            }
+          />
+          <span>执飞期间保持屏幕常亮</span>
+        </label>
+        <p className="settings-hint">
+          常亮时计时器全程可见，较耗电；关闭后手机会自动锁屏，白噪音仍在后台继续播放
+        </p>
+      </section>
+
+      <section className="card">
         <h3 className="settings-section-title">⏱ 延长航程</h3>
         <label className="switch-row">
           <input

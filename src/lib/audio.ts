@@ -84,8 +84,8 @@ class AudioManager {
     } catch {
       /* 不支持时静默降级 */
     }
-    // 手势内补播待播的背景音
-    if (this.currentType && el.paused && this.backgroundEnabled) {
+    // 手势内补播待播的背景音（intentionalPause 期间不补：进港/间隙页保持安静）
+    if (this.currentType && el.paused && this.backgroundEnabled && !this.intentionalPause) {
       void el.play().catch(() => {});
     }
     this.bindRetryOnGesture();
@@ -143,13 +143,21 @@ class AudioManager {
   /**
    * 刷新页面恢复航程后，元素虽被激活过但可能因自动播放策略静默失败：
    * 任意一次触摸/点击即补播当前音效。
+   * 注意必须尊重 intentionalPause：进港后（页面06/10）用户点击界面时
+   * 背景音不得恢复，只有进入页面05执飞才会重新 play()。
    */
   private bindRetryOnGesture(): void {
     if (this.retryBound) return;
     this.retryBound = true;
     document.addEventListener('pointerdown', () => {
       if (this.ctx?.state === 'suspended') void this.ctx.resume();
-      if (this.el && this.currentType && this.el.paused && this.backgroundEnabled) {
+      if (
+        this.el &&
+        this.currentType &&
+        this.el.paused &&
+        this.backgroundEnabled &&
+        !this.intentionalPause
+      ) {
         void this.el.play().catch(() => {});
       }
     });

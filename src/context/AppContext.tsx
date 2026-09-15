@@ -10,6 +10,8 @@ import {
 } from 'react';
 import type {
   AppSettings,
+  AppStats,
+  BadgeTier,
   Block,
   FlightSession,
   PlanDraft,
@@ -17,6 +19,7 @@ import type {
 } from '@/types';
 import { clearSession, loadFullState, persistState, replaceSession, saveSettings } from '@/lib/db';
 import { createDefaultPlanTasks } from '@/lib/defaults';
+import { getNewlyEarnedTier } from '@/lib/badges';
 import { audioManager } from '@/lib/audio';
 import { acquireScreenWakeLock, releaseScreenWakeLock } from '@/lib/wakeLock';
 import { getBlockOvertimeMinutes } from '@/lib/time';
@@ -48,7 +51,8 @@ interface AppContextValue {
   startFirstBlock: () => Promise<Block | null>;
   landCurrentBlock: () => Promise<{ earlyBonus: number }>;
   startNextBlock: () => Promise<Block | null>;
-  finishVoyage: () => Promise<void>;
+  /** 结束航程；返回本趟新获得的徽章等级（完成页庆祝用） */
+  finishVoyage: () => Promise<{ newBadge: BadgeTier | null }>;
   cancelVoyage: () => Promise<void>;
   resetVoyage: () => Promise<void>;
   toggleCurrentIncomplete: () => Promise<void>;
@@ -204,15 +208,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return started;
   }, [session, blocks, saveAll]);
 
-  const finishVoyage = useCallback(async () => {
-    if (!session || !settings) return;
+  const finishVoyage = useCallback(async (): Promise<{ newBadge: BadgeTier | null }> => {
+    if (!session || !settings) return { newBadge: null };
     const finished = finishDay(session);
     // 统计与机型解锁
     const flown = blocks.reduce((s, b) => s + (b.actualDurationMinutes ?? 0), 0);
-    const stats = {
+    const stats: AppStats = {
       completedVoyages: settings.stats.completedVoyages + 1,
       totalFlownMinutes: settings.stats.totalFlownMinutes + flown,
+      voyagesByAircraft: {
+        ...settings.stats.voyagesByAircraft,
+        [session.aircraftId]: (settings.stats.voyagesByAircraft[session.aircraftId] ?? 0) + 1,
+      },
     };
+    // 对比前后统计，探测本趟新获得的徽章
+    const newBadge = getNewlyEarnedTier(settings.stats, stats, session.aircraftId);
     const aircrafts = settings.aircrafts.map((a) => {
       if (a.unlocked) return a;
       const rule = UNLOCK_RULES.find((r) => r.aircraftId === a.id);
@@ -222,6 +232,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettings(nextSettings);
     await saveSettings(nextSettings);
     await saveAll(finished, blocks);
+    return { newBadge };
   }, [session, settings, blocks, saveAll]);
 
   const cancelVoyage = useCallback(async () => {

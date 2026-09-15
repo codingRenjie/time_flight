@@ -1,12 +1,14 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
+import { Badge } from '@/components/Badge';
+import { getHighestTier } from '@/lib/badges';
 import { hasPendingBlocks } from '@/lib/sessionLogic';
 
 /** 页面06：任务进港页 */
 export function ArrivedPage() {
   const navigate = useNavigate();
-  const { session, blocks, finishVoyage } = useApp();
+  const { session, blocks, settings, finishVoyage } = useApp();
 
   useEffect(() => {
     if (!session) navigate('/start', { replace: true });
@@ -28,8 +30,8 @@ export function ArrivedPage() {
     .find((b) => b.status === 'planned' && b.remainingBudgetMinutes > 0);
 
   const handleFinish = async () => {
-    await finishVoyage();
-    navigate('/complete', { replace: true });
+    const { newBadge } = await finishVoyage();
+    navigate('/complete', { replace: true, state: { newBadge } });
   };
 
   return (
@@ -42,6 +44,16 @@ export function ArrivedPage() {
         />
         <div className="checkpoint-badge">🛬 任务进港</div>
         <h1 className="arrived-title">{landed?.title ?? '本段任务'}</h1>
+        {(() => {
+          const topTier = getHighestTier(settings.stats, session.aircraftId);
+          const aircraft = settings.aircrafts.find((a) => a.id === session.aircraftId);
+          return topTier && aircraft ? (
+            <p className="arrived-aircraft badge-inline">
+              <Badge aircraftId={session.aircraftId} tier={topTier} size={20} />
+              {aircraft.shortName} 执飞中
+            </p>
+          ) : null;
+        })()}
 
         <div className="card arrived-card">
           <div className="stat-row">

@@ -94,6 +94,9 @@ export function SettingsPage() {
           ))}
         </div>
         <p className="settings-hint">完成更多航程，即可解锁新机型</p>
+        <button className="badge-wall-link" onClick={() => navigate('/badges')}>
+          🏅 查看我的机长徽章墙 →
+        </button>
       </section>
 
       <section className="card">

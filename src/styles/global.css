@@ -1284,3 +1284,166 @@ button {
 .cancel-voyage-btn:hover {
   color: rgba(248, 250, 252, 0.75);
 }
+
+/* ---------- 徽章系统 ---------- */
+
+/* 页面01：固定一屏，不可上下滑动 */
+.start-page {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 页面01左上角徽章入口（与右上角设置按钮对称） */
+.badge-entry {
+  padding: 0;
+}
+
+.badge-empty {
+  width: 28px;
+  height: 28px;
+  border: 2px dashed rgba(148, 163, 184, 0.55);
+  border-radius: 50%;
+}
+
+/* 页面09机型栏的徽章墙入口链接 */
+.badge-wall-link {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px dashed rgba(96, 165, 250, 0.45);
+  border-radius: 12px;
+  background: rgba(96, 165, 250, 0.08);
+  color: #7ab3f8;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.badge-wall-link:hover {
+  background: rgba(96, 165, 250, 0.14);
+}
+
+/* 页面11：徽章墙头部 */
+.badge-wall-hero {
+  text-align: center;
+  margin: 8px 0 20px;
+}
+
+/* 素材为黑底圆形奖章图，border-radius 裁圆后融入深色 UI */
+.badge-img {
+  border-radius: 50%;
+  vertical-align: middle;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 2px 10px rgba(0, 0, 0, 0.45);
+  user-select: none;
+}
+
+.badge-img.is-locked {
+  filter: grayscale(1) brightness(0.6);
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+/* 行内小徽章（执飞各页标题旁） */
+.badge-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.fly-flightno {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.takeoff-aircraft,
+.arrived-aircraft,
+.next-aircraft {
+  color: rgba(248, 250, 252, 0.75);
+  font-size: 0.9rem;
+  margin: 6px 0 0;
+}
+
+/* 页面11：徽章墙 */
+.badge-wall {
+  text-align: left;
+}
+
+.badge-row + .badge-row {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.badge-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.badge-aircraft-name {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.badge-aircraft-count {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.badge-slots {
+  display: flex;
+  gap: 20px;
+}
+
+.badge-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.badge-progress {
+  font-size: 0.68rem;
+  opacity: 0.8;
+}
+
+/* 页面08：新徽章庆祝 */
+.badge-celebration {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 18px;
+  animation: badge-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.badge-celebration-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fbbf24;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

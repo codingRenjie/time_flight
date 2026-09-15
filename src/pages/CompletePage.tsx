@@ -1,13 +1,20 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
+import { Badge } from '@/components/Badge';
+import { getTierLabel } from '@/lib/badges';
 import { getSessionSummary, getTaskReviews } from '@/lib/sessionLogic';
+import type { BadgeTier } from '@/types';
 
 /** 页面08：全部完成页 */
 export function CompletePage() {
   const navigate = useNavigate();
-  const { session, blocks, resetVoyage } = useApp();
+  const location = useLocation();
+  const { session, blocks, settings, resetVoyage } = useApp();
+  // 本趟航程新获得的徽章（由进港页/再次起飞页通过路由 state 传入）
+  const newBadge =
+    (location.state as { newBadge?: BadgeTier | null } | null)?.newBadge ?? null;
 
   useEffect(() => {
     if (!session) navigate('/start', { replace: true });
@@ -29,6 +36,25 @@ export function CompletePage() {
       <div className="fullscreen-content complete-content">
         <div className="checkpoint-badge">🛬 全部进港</div>
         <h1 className="complete-title">今日航程圆满完成！</h1>
+
+        {newBadge &&
+          (() => {
+            const aircraft = settings.aircrafts.find((a) => a.id === session.aircraftId);
+            return (
+              <div className="badge-celebration">
+                <Badge
+                  aircraftId={session.aircraftId}
+                  tier={newBadge}
+                  size={110}
+                  label={getTierLabel(newBadge)}
+                />
+                <div className="badge-celebration-text">
+                  🎉 获得{aircraft ? `${aircraft.shortName} ` : ''}
+                  {getTierLabel(newBadge)}！
+                </div>
+              </div>
+            );
+          })()}
 
         <div className="card complete-card">
           <div className="complete-rate">

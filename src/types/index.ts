@@ -16,6 +16,9 @@ export type SoundType = 'engine' | 'rain' | 'snow' | 'waterfall' | 'campfire' | 
 
 export type ViewType = 'cockpit' | 'wing';
 
+/** 徽章等级（按机型完成航程数解锁：铜 1 / 银 5 / 金 20） */
+export type BadgeTier = 'bronze' | 'silver' | 'gold';
+
 export interface Aircraft {
   id: string;
   /** 展示全名，如 庞巴迪 Challenger 650 */
@@ -83,6 +86,8 @@ export interface FlightSession {
 export interface AppStats {
   completedVoyages: number;
   totalFlownMinutes: number;
+  /** 每个机型各自累计完成的航程数（徽章系统由此派生） */
+  voyagesByAircraft: Record<string, number>;
 }
 
 export interface AppSettings {

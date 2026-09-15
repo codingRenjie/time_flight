@@ -50,7 +50,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   soundEnabled: true,
   keepScreenOn: true,
   viewType: 'cockpit',
-  stats: { completedVoyages: 0, totalFlownMinutes: 0 },
+  stats: { completedVoyages: 0, totalFlownMinutes: 0, voyagesByAircraft: {} },
 };
 
 export const SOUND_OPTIONS: { type: import('@/types').SoundType; label: string }[] = [

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { WheelPicker } from '@/components/WheelPicker';
+import { Badge } from '@/components/Badge';
+import { getGlobalTopBadge } from '@/lib/badges';
 import { getWindowBounds } from '@/lib/time';
 
 function formatTotal(minutes: number): string {
@@ -33,10 +35,27 @@ export function StartPage() {
     navigate('/plan');
   };
 
+  // 全局最高徽章：左上角展示，点击进入徽章墙；零基础用户显示虚线占位框
+  const topBadge = getGlobalTopBadge(
+    settings.stats,
+    settings.aircrafts.map((a) => a.id),
+    settings.selectedAircraftId,
+  );
+
   return (
     <div className="page start-page">
       <header className="page-topbar">
-        <div />
+        <button
+          className="icon-btn badge-entry"
+          aria-label="机长徽章墙"
+          onClick={() => navigate('/badges')}
+        >
+          {topBadge ? (
+            <Badge aircraftId={topBadge.aircraftId} tier={topBadge.tier} size={28} />
+          ) : (
+            <span className="badge-empty" aria-hidden="true" />
+          )}
+        </button>
         <button
           className="icon-btn"
           aria-label="系统设置"

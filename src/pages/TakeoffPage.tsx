@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
 import { ThrottleLever } from '@/components/ThrottleLever';
+import { Badge } from '@/components/Badge';
+import { getHighestTier } from '@/lib/badges';
 import { audioManager } from '@/lib/audio';
 
 /** 页面04：起飞油门页 */
@@ -21,6 +23,10 @@ export function TakeoffPage() {
   }, [session, navigate]);
 
   if (!session || session.status !== 'ready') return null;
+
+  const aircraft =
+    settings.aircrafts.find((a) => a.id === session.aircraftId) ?? settings.aircrafts[0];
+  const topTier = getHighestTier(settings.stats, session.aircraftId);
 
   const handleProgress = (p: number) => {
     // 推油门是用户手势：在此解锁音频，并让引擎声随推杆渐强
@@ -48,7 +54,10 @@ export function TakeoffPage() {
       <div className="fullscreen-content">
         <div className="takeoff-header">
           <h1>准备起飞</h1>
-          <p>塔台已放行，跑道畅通</p>
+          <p className="takeoff-aircraft badge-inline">
+            {topTier && <Badge aircraftId={session.aircraftId} tier={topTier} size={20} />}
+            {aircraft.shortName} · 塔台已放行，跑道畅通
+          </p>
         </div>
         <ThrottleLever onComplete={() => void handleComplete()} onProgress={handleProgress} />
       </div>

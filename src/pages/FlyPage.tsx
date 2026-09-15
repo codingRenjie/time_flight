@@ -4,6 +4,8 @@ import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
 import { CircularTimer } from '@/components/CircularTimer';
 import { Modal } from '@/components/Modal';
+import { Badge } from '@/components/Badge';
+import { getHighestTier } from '@/lib/badges';
 import { SOUND_OPTIONS, VIEW_OPTIONS } from '@/lib/defaults';
 import { audioManager } from '@/lib/audio';
 import { getDrainInfo } from '@/lib/sessionLogic';
@@ -103,6 +105,8 @@ export function FlyPage() {
   const aircraft =
     settings.aircrafts.find((a) => a.id === session.aircraftId) ?? settings.aircrafts[0];
   const bgImage = settings.viewType === 'wing' ? '/assets/bg-wing.png' : '/assets/bg-cockpit.png';
+  // 当前机型已获得的最高徽章（航班号旁的小装饰）
+  const topTier = getHighestTier(settings.stats, session.aircraftId);
 
   const handleLand = async () => {
     audioManager.pause();
@@ -166,6 +170,7 @@ export function FlyPage() {
 
       <div className="fly-content">
         <div className="fly-flightno">
+          {topTier && <Badge aircraftId={session.aircraftId} tier={topTier} size={22} />}
           {aircraft.shortName} · 航班 TP{session.date.slice(5).replace('-', '')}
         </div>
         <div className="fly-task-title">{block.title}</div>

@@ -4,21 +4,23 @@
  * 将 audio.ts 中的程序化音效渲染成无缝循环的音频文件（HTML <audio> 通道，
  * 锁屏后可继续播放）。后续拿到真实素材后直接替换 public/assets/audio/*.m4a 即可。
  *
- * 用法：
- *   node scripts/render-audio.mjs            # 输出 WAV 到 .tmp/audio
- *   随后自动调用 afconvert 转成 m4a 到 public/assets/audio/
+ * 用法：node scripts/render-audio.mjs  →  输出 WAV 到 public/assets/audio/
+ *
+ * 为什么用 WAV 而不是 m4a：AAC 编码器会在首尾填充静音采样（priming/padding），
+ * 安卓 Chrome 的 <audio loop> 不裁剪这些填充，每次循环产生约 0.2s 停顿；
+ * WAV 是裸 PCM，循环逐样本无缝。代价是体积大（约 1.3MB/个），占位阶段可接受。
+ * 替换真实素材时若想用小体积文件，请使用支持 gapless 的封装（iOS 可用 m4a，
+ * 安卓 Chrome 建议 WAV 或 OGG）。
  *
  * 无缝循环策略：
  *   - 噪声类：结尾 1s 与开头做等功率交叉淡化（噪声无相位记忆，听不出接缝）
  *   - 音乐垫：所有振荡器频率对齐到「每循环整数个周期」网格，首尾严格过零，无需淡化
  */
-import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const SR = 22050; // 单声道 22.05kHz，占位素材足够且体积小
 const OUT_DIR = new URL('../public/assets/audio/', import.meta.url).pathname;
-const TMP_DIR = new URL('../.tmp/audio/', import.meta.url).pathname;
 
 /* ---------- 基础发生器（与 audio.ts 的算法一致） ---------- */
 
@@ -202,14 +204,10 @@ const sounds = {
 /* ---------- 主流程 ---------- */
 
 mkdirSync(OUT_DIR, { recursive: true });
-mkdirSync(TMP_DIR, { recursive: true });
 
 for (const [name, renderFn] of Object.entries(sounds)) {
-  const wav = join(TMP_DIR, `${name}.wav`);
-  const m4a = join(OUT_DIR, `${name}.m4a`);
+  const wav = join(OUT_DIR, `${name}.wav`);
   writeWav(wav, renderFn());
-  execFileSync('afconvert', ['-f', 'm4af', '-d', 'aac', '-b', '64000', '-q', '127', wav, m4a]);
-  console.log(`✓ ${name}.m4a`);
+  console.log(`✓ ${name}.wav`);
 }
-rmSync(TMP_DIR, { recursive: true, force: true });
 console.log('完成：public/assets/audio/');

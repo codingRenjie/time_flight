@@ -2,18 +2,27 @@
  * 屏幕常亮（Wake Lock API）。
  * iOS Safari 16.4+ / Android Chrome 支持；不支持的浏览器静默降级。
  *
- * 注意：系统会在页面隐藏时自动释放锁，回到前台需重新申请
- * （AppContext 里的 visibilitychange 监听负责）。
+ * 注意：系统会在页面隐藏时自动释放锁，且申请可能被系统拒绝
+ * （低电量模式等），因此调用方需要周期性重试 + 回前台时重新申请
+ * （见 AppContext 的 visibilitychange 监听与重试定时器）。
  */
 let sentinel: WakeLockSentinel | null = null;
 
-export async function acquireScreenWakeLock(): Promise<void> {
+/** 申请常亮；已持有锁时为幂等操作。返回是否成功持有。 */
+export async function acquireScreenWakeLock(): Promise<boolean> {
   try {
-    if (!('wakeLock' in navigator)) return;
-    if (sentinel && !sentinel.released) return;
+    if (!('wakeLock' in navigator)) return false;
+    if (sentinel && !sentinel.released) return true;
     sentinel = await navigator.wakeLock.request('screen');
-  } catch {
-    /* 低电量模式等原因被系统拒绝时静默降级 */
+    console.info('[TimePilot] 屏幕常亮：已开启');
+    sentinel.addEventListener('release', () => {
+      console.info('[TimePilot] 屏幕常亮：已释放');
+    });
+    return true;
+  } catch (err) {
+    console.warn('[TimePilot] 屏幕常亮：申请失败（可能处于低电量模式）', err);
+    sentinel = null;
+    return false;
   }
 }
 

@@ -19,12 +19,12 @@ import type { SoundType } from '@/types';
  */
 
 const SOUND_META: Record<SoundType, { title: string; file: string }> = {
-  engine: { title: '引擎轰鸣', file: '/assets/audio/engine.m4a' },
-  rain: { title: '雨声', file: '/assets/audio/rain.m4a' },
-  snow: { title: '风雪', file: '/assets/audio/snow.m4a' },
-  waterfall: { title: '瀑布', file: '/assets/audio/waterfall.m4a' },
-  campfire: { title: '篝火', file: '/assets/audio/campfire.m4a' },
-  music: { title: '专注音乐', file: '/assets/audio/music.m4a' },
+  engine: { title: '引擎轰鸣', file: '/assets/audio/engine.wav' },
+  rain: { title: '雨声', file: '/assets/audio/rain.wav' },
+  snow: { title: '风雪', file: '/assets/audio/snow.wav' },
+  waterfall: { title: '瀑布', file: '/assets/audio/waterfall.wav' },
+  campfire: { title: '篝火', file: '/assets/audio/campfire.wav' },
+  music: { title: '专注音乐', file: '/assets/audio/music.wav' },
 };
 
 function makeNoiseBuffer(ctx: AudioContext, kind: 'white' | 'brown'): AudioBuffer {
@@ -55,6 +55,12 @@ class AudioManager {
   private unlocked = false;
   private volume = 0.6;
   private retryBound = false;
+  /** 区分「我们主动暂停」与「系统打断（音频焦点丢失等）」，后者自动恢复 */
+  private intentionalPause = false;
+  /** 锁屏媒体卡片上展示的任务信息 */
+  private taskInfo: { title: string; remainingMinutes: number | null } | null = null;
+  /** 背景音总开关（设置项 soundEnabled 驱动；推杆短音效不受其影响） */
+  private backgroundEnabled = true;
 
   /** 必须在用户手势回调里调用（页面04 推油门是天然解锁点） */
   unlock(): void {
@@ -79,10 +85,22 @@ class AudioManager {
       /* 不支持时静默降级 */
     }
     // 手势内补播待播的背景音
-    if (this.currentType && el.paused) {
+    if (this.currentType && el.paused && this.backgroundEnabled) {
       void el.play().catch(() => {});
     }
     this.bindRetryOnGesture();
+  }
+
+  /** 背景音总开关：关闭即静默背景音（推杆短音效保留），打开时恢复当前音效 */
+  setBackgroundEnabled(on: boolean): void {
+    this.backgroundEnabled = on;
+    if (!on) {
+      this.intentionalPause = true;
+      this.el?.pause();
+    } else if (this.el && this.currentType && this.el.paused) {
+      this.intentionalPause = false;
+      void this.el.play().catch(() => {});
+    }
   }
 
   get isUnlocked(): boolean {
@@ -91,9 +109,15 @@ class AudioManager {
 
   setVolume(v: number): void {
     this.volume = Math.min(1, Math.max(0, v));
-    if (this.el) this.el.volume = this.volume;
+    // 人耳对响度的感知是对数式的：线性映射会让滑杆前半段几乎听不出变化，
+    // 用平方曲线把滑杆行程映射到感知响度
+    const gain = this.volume * this.volume;
+    if (this.el) {
+      this.el.muted = false;
+      this.el.volume = gain;
+    }
     if (this.ctx && this.master) {
-      this.master.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.05);
+      this.master.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.05);
     }
   }
 
@@ -102,7 +126,15 @@ class AudioManager {
       const el = new Audio();
       el.loop = true;
       el.preload = 'auto';
-      el.volume = this.volume;
+      el.volume = this.volume * this.volume; // 感知响度曲线，与 setVolume 一致
+      // 系统打断（音频焦点被抢等）导致的暂停：自动尝试恢复
+      el.addEventListener('pause', () => {
+        if (!this.intentionalPause && this.currentType) {
+          void el.play().catch(() => {
+            /* 恢复失败则等下次手势/回前台再试 */
+          });
+        }
+      });
       this.el = el;
     }
     return this.el;
@@ -117,23 +149,36 @@ class AudioManager {
     this.retryBound = true;
     document.addEventListener('pointerdown', () => {
       if (this.ctx?.state === 'suspended') void this.ctx.resume();
-      if (this.el && this.currentType && this.el.paused) {
+      if (this.el && this.currentType && this.el.paused && this.backgroundEnabled) {
         void this.el.play().catch(() => {});
       }
     });
   }
 
-  private updateMediaSession(title: string): void {
+  /** 锁屏媒体卡片：标题显示任务与剩余时间，副标题显示音效名 */
+  private refreshMetadata(): void {
     if (!('mediaSession' in navigator)) return;
+    const soundTitle = this.currentType ? SOUND_META[this.currentType].title : '';
+    const taskLine = this.taskInfo
+      ? this.taskInfo.remainingMinutes !== null
+        ? `${this.taskInfo.title} · 剩余 ${this.taskInfo.remainingMinutes} 分钟`
+        : this.taskInfo.title
+      : '执飞中';
     try {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: `${title} · 执飞中`,
-        artist: 'Time Pilot 时光机长',
+        title: taskLine,
+        artist: soundTitle ? `${soundTitle} · Time Pilot 时光机长` : 'Time Pilot 时光机长',
         artwork: [{ src: '/assets/bg-cockpit.png', sizes: '512x512', type: 'image/png' }],
       });
     } catch {
       /* 旧浏览器静默降级 */
     }
+  }
+
+  /** 更新锁屏卡片上的任务信息（执飞页每分钟刷新一次） */
+  setTaskInfo(title: string | null, remainingMinutes: number | null = null): void {
+    this.taskInfo = title ? { title, remainingMinutes } : null;
+    this.refreshMetadata();
   }
 
   /** 播放/切换背景音（未解锁时为安全静默） */
@@ -144,9 +189,10 @@ class AudioManager {
     if (this.currentType !== type) {
       this.currentType = type;
       el.src = meta.file;
-      this.updateMediaSession(meta.title);
+      this.refreshMetadata();
     }
-    if (el.paused) {
+    this.intentionalPause = false;
+    if (el.paused && this.backgroundEnabled) {
       void el.play().catch(() => {
         /* 自动播放策略拦截：等待下次手势由 bindRetryOnGesture 补播 */
       });
@@ -155,13 +201,21 @@ class AudioManager {
 
   /** 页面05 → 06 进港时暂停（媒体通道 + 短音效通道一起挂起） */
   pause(): void {
+    this.intentionalPause = true;
     this.el?.pause();
     if (this.ctx?.state === 'running') void this.ctx.suspend();
   }
 
+  /** 仅暂停背景音（关闭背景音开关用，不影响推杆短音效） */
+  pauseBackground(): void {
+    this.intentionalPause = true;
+    this.el?.pause();
+  }
+
   /** 再次起飞 / 回到前台时恢复（没有待恢复音效则静默） */
   resume(): void {
-    if (this.el && this.currentType && this.el.paused) {
+    if (this.el && this.currentType && this.el.paused && this.backgroundEnabled) {
+      this.intentionalPause = false;
       void this.el.play().catch(() => {});
     }
     if (this.ctx?.state === 'suspended') void this.ctx.resume();
@@ -169,8 +223,10 @@ class AudioManager {
 
   /** 航程结束/取消时彻底停止 */
   stop(): void {
+    this.intentionalPause = true;
     this.el?.pause();
     this.currentType = null;
+    this.taskInfo = null;
   }
 
   /* ---------- 短音效（WebAudio，推杆反馈） ---------- */

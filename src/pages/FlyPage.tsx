@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
@@ -67,6 +67,7 @@ export function FlyPage() {
     window.addEventListener('pointerdown', unlockOnTouch, { once: true });
     return () => {
       window.removeEventListener('pointerdown', unlockOnTouch);
+      audioManager.setTaskInfo(null);
       audioManager.pause();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -76,6 +77,18 @@ export function FlyPage() {
     () => (block && session ? getDrainInfo(blocks, block, session) : null),
     [block, blocks, session],
   );
+
+  // 锁屏媒体卡片：同步任务名与剩余分钟（分钟变化时更新；
+  // 页面隐藏后 JS 计时器被系统节流为分钟级，与锁屏卡片刷新粒度正好一致）
+  const lastMetaMinute = useRef(-1);
+  const metaMinute = block ? Math.max(0, Math.ceil(getBlockRemainingMinutes(block, now))) : null;
+  useEffect(() => {
+    if (!block || metaMinute === null) return;
+    if (metaMinute !== lastMetaMinute.current) {
+      lastMetaMinute.current = metaMinute;
+      audioManager.setTaskInfo(block.title, metaMinute);
+    }
+  }, [block, metaMinute]);
 
   if (!block || !session) return null;
 
@@ -194,32 +207,44 @@ export function FlyPage() {
 
       <Modal open={soundOpen} onClose={() => setSoundOpen(false)}>
         <h2>音效设定</h2>
-        <div className="sound-list">
-          {SOUND_OPTIONS.map((s) => (
-            <button
-              key={s.type}
-              className={`sound-option ${settings.soundType === s.type ? 'is-selected' : ''}`}
-              onClick={() => pickSound(s.type)}
-            >
-              {s.label}
-              {settings.soundType === s.type && <span> ✓</span>}
-            </button>
-          ))}
-        </div>
-        <label className="volume-row">
-          音量
+        <label className="switch-row">
           <input
-            type="range"
-            min={0}
-            max={100}
-            value={Math.round(settings.soundVolume * 100)}
-            onChange={(e) => {
-              const v = Number(e.target.value) / 100;
-              void updateSettings({ ...settings, soundVolume: v });
-              audioManager.setVolume(v);
-            }}
+            type="checkbox"
+            checked={settings.soundEnabled}
+            onChange={(e) =>
+              void updateSettings({ ...settings, soundEnabled: e.target.checked })
+            }
           />
+          <span>背景音</span>
         </label>
+        <div style={settings.soundEnabled ? undefined : { opacity: 0.4 }}>
+          <div className="sound-list">
+            {SOUND_OPTIONS.map((s) => (
+              <button
+                key={s.type}
+                className={`sound-option ${settings.soundType === s.type ? 'is-selected' : ''}`}
+                onClick={() => pickSound(s.type)}
+              >
+                {s.label}
+                {settings.soundType === s.type && <span> ✓</span>}
+              </button>
+            ))}
+          </div>
+          <label className="volume-row">
+            音量
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(settings.soundVolume * 100)}
+              onChange={(e) => {
+                const v = Number(e.target.value) / 100;
+                void updateSettings({ ...settings, soundVolume: v });
+                audioManager.setVolume(v);
+              }}
+            />
+          </label>
+        </div>
       </Modal>
 
       <Modal open={viewOpen} onClose={() => setViewOpen(false)}>

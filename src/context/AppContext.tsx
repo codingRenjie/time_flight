@@ -83,10 +83,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  /* ---------- 陪伴体验：执飞期间屏幕常亮 + 回到前台恢复音频 ---------- */
+  /* ---------- 陪伴体验：航程期间屏幕常亮 + 回到前台恢复音频 ---------- */
 
   const flyingNow = session?.status === 'flying';
-  const shouldHoldWakeLock = flyingNow && (settings?.keepScreenOn ?? false);
+  // 整趟航程（含起飞前/进港间隙）都保持常亮，避免任务间隙屏幕熄灭
+  const voyageActive =
+    session != null && session.status !== 'dayEnd' && session.status !== 'cancelled';
+  const shouldHoldWakeLock = voyageActive && (settings?.keepScreenOn ?? false);
   // 用 ref 让常驻 visibilitychange 监听读到最新状态
   const flyingRef = useRef(flyingNow);
   flyingRef.current = flyingNow;
@@ -94,14 +97,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   holdRef.current = shouldHoldWakeLock;
 
   useEffect(() => {
-    if (shouldHoldWakeLock) void acquireScreenWakeLock();
-    else void releaseScreenWakeLock();
+    if (!shouldHoldWakeLock) {
+      void releaseScreenWakeLock();
+      return;
+    }
+    void acquireScreenWakeLock();
+    // 申请可能被系统拒绝（低电量模式等），且页面隐藏时会被系统自动释放：
+    // 周期性重试，保证常亮在各种打断后都能恢复
+    const retry = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void acquireScreenWakeLock();
+    }, 15000);
+    return () => window.clearInterval(retry);
   }, [shouldHoldWakeLock]);
 
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return;
-      // Wake Lock 在页面隐藏时被系统释放，回到前台重新申请
+      // Wake Lock 在页面隐藏时被系统释放，回到前台立即重新申请
       if (holdRef.current) void acquireScreenWakeLock();
       // 执飞中被系统打断的背景音在此恢复（进港/结束页不恢复）
       if (flyingRef.current) audioManager.resume();
@@ -109,6 +121,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
+
+  /* 背景音总开关跟随设置（含初始加载与开关切换） */
+  const soundEnabled = settings?.soundEnabled ?? true;
+  useEffect(() => {
+    audioManager.setBackgroundEnabled(soundEnabled);
+  }, [soundEnabled]);
 
   const saveAll = useCallback(
     async (nextSession: FlightSession | null, nextBlocks: Block[]) => {

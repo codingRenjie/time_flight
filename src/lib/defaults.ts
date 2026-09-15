@@ -47,6 +47,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   voyageExtendMinutes: 30,
   soundType: 'engine',
   soundVolume: 0.6,
+  soundEnabled: true,
   keepScreenOn: true,
   viewType: 'cockpit',
   stats: { completedVoyages: 0, totalFlownMinutes: 0 },

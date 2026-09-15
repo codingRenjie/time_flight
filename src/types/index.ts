@@ -96,6 +96,8 @@ export interface AppSettings {
   voyageExtendMinutes: number;
   soundType: SoundType;
   soundVolume: number;
+  /** 背景音总开关（关闭时推杆短音效仍保留） */
+  soundEnabled: boolean;
   /** 执飞期间保持屏幕常亮（Wake Lock） */
   keepScreenOn: boolean;
   viewType: ViewType;

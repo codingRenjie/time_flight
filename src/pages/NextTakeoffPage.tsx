@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
 import { Modal } from '@/components/Modal';
 import { Badge } from '@/components/Badge';
-import { getHighestTier } from '@/lib/badges';
+import { resolveDisplayBadge } from '@/lib/badges';
 import { peekNextBlock } from '@/lib/sessionLogic';
 import { audioManager } from '@/lib/audio';
 
@@ -53,10 +53,10 @@ export function NextTakeoffPage() {
         <h1 className="next-task-title">{next.title}</h1>
         <p className="next-task-duration">{next.remainingBudgetMinutes} 分钟</p>
         {(() => {
-          const topTier = getHighestTier(settings.stats, session.aircraftId);
-          return topTier ? (
+          const displayBadge = resolveDisplayBadge(settings);
+          return displayBadge ? (
             <p className="next-aircraft badge-inline">
-              <Badge aircraftId={session.aircraftId} tier={topTier} size={20} />
+              <Badge aircraftId={displayBadge.aircraftId} tier={displayBadge.tier} size={20} />
             </p>
           ) : null;
         })()}

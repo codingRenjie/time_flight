@@ -1,4 +1,4 @@
-import type { AppStats, BadgeTier } from '@/types';
+import type { AppSettings, AppStats, BadgeTier } from '@/types';
 
 /** 徽章等级配置：按「该机型的完成航程数」解锁 */
 export const BADGE_TIERS: { tier: BadgeTier; label: string; required: number }[] = [
@@ -51,7 +51,41 @@ export function getTierLabel(tier: BadgeTier): string {
   return BADGE_TIERS.find((t) => t.tier === tier)?.label ?? '';
 }
 
-/** 全局最高徽章（页面01左上角展示用）：跨机型取最高等级；同级优先当前选中机型，再比航程数 */
+export interface EarnedBadge {
+  aircraftId: string;
+  tier: BadgeTier;
+}
+
+/** 全部已获得的徽章，按机型目录顺序、再按铜银金 */
+export function listEarnedBadges(stats: AppStats, aircraftIds: string[]): EarnedBadge[] {
+  const earned: EarnedBadge[] = [];
+  for (const id of aircraftIds) {
+    const n = getAircraftVoyages(stats, id);
+    for (const t of BADGE_TIERS) {
+      if (n >= t.required) earned.push({ aircraftId: id, tier: t.tier });
+    }
+  }
+  return earned;
+}
+
+/**
+ * 航程页上要展示的那一枚。
+ * 没有徽章时为空；只有一枚时就是那一枚；多枚时用用户在徽章墙上的选择。
+ * 还没选过时，回退到当前最高等级。
+ */
+export function resolveDisplayBadge(settings: AppSettings): EarnedBadge | null {
+  const ids = settings.aircrafts.map((a) => a.id);
+  const earned = listEarnedBadges(settings.stats, ids);
+  if (earned.length === 0) return null;
+  if (earned.length === 1) return earned[0];
+  const saved = settings.displayBadge;
+  if (saved && earned.some((b) => b.aircraftId === saved.aircraftId && b.tier === saved.tier)) {
+    return saved;
+  }
+  return getGlobalTopBadge(settings.stats, ids, settings.selectedAircraftId);
+}
+
+/** 全局最高徽章：跨机型取最高等级；同级优先当前选中机型，再比航程数 */
 export function getGlobalTopBadge(
   stats: AppStats,
   aircraftIds: string[],

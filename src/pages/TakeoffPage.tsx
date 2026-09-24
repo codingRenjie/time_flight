@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
 import { ThrottleLever } from '@/components/ThrottleLever';
 import { Badge } from '@/components/Badge';
-import { getHighestTier } from '@/lib/badges';
+import { resolveDisplayBadge } from '@/lib/badges';
 import { audioManager } from '@/lib/audio';
 
 /** 页面04：起飞油门页 */
@@ -30,7 +30,7 @@ export function TakeoffPage() {
 
   const aircraft =
     settings.aircrafts.find((a) => a.id === session.aircraftId) ?? settings.aircrafts[0];
-  const topTier = getHighestTier(settings.stats, session.aircraftId);
+  const displayBadge = resolveDisplayBadge(settings);
 
   const handleProgress = () => {
     // 推杆手势只解锁音频通道，让档位咔哒能响；不播引擎轰鸣
@@ -57,7 +57,9 @@ export function TakeoffPage() {
           <p className="topbar-eyebrow">CLEARED FOR TAKEOFF</p>
           <h1>准备起飞</h1>
           <p className="takeoff-aircraft badge-inline">
-            {topTier && <Badge aircraftId={session.aircraftId} tier={topTier} size={20} />}
+            {displayBadge && (
+              <Badge aircraftId={displayBadge.aircraftId} tier={displayBadge.tier} size={20} />
+            )}
             {aircraft.shortName} · 塔台已放行，跑道畅通
           </p>
         </div>

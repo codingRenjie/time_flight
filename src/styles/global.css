@@ -2161,7 +2161,30 @@ button {
 /* 页面11：徽章墙头部 */
 .badge-wall-hero {
   text-align: center;
-  margin: 8px 0 20px;
+  margin: 4px 0 18px;
+}
+
+.badge-wall-page {
+  background: #000;
+}
+
+.badge-wall-page .icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.badge-wall-page .topbar-spacer {
+  width: 44px;
+}
+
+.badge-wall-stats {
+  margin: 0;
+  font-weight: 600;
+}
+
+.badge-wall-rules {
+  margin: 6px 0 0;
+  color: #8e8e93;
+  font-size: 0.82rem;
 }
 
 /* 素材为黑底圆形奖章图，border-radius 裁圆后融入深色 UI */
@@ -2203,14 +2226,25 @@ button {
 }
 
 /* 页面11：徽章墙 */
+.badge-wall-page .card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
 .badge-wall {
   text-align: left;
 }
 
 .badge-row + .badge-row {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.badge-wall-page .badge-row.is-locked {
+  opacity: 0.72;
 }
 
 .badge-row-head {
@@ -2226,13 +2260,14 @@ button {
 }
 
 .badge-aircraft-count {
-  color: var(--text-muted);
+  color: #8e8e93;
   font-size: 0.78rem;
 }
 
 .badge-slots {
-  display: flex;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px 10px;
 }
 
 .badge-slot {
@@ -2240,9 +2275,41 @@ button {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 56px;
+  min-width: 0;
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: #8e8e93;
+}
+
+.badge-wall-page .badge-slot.is-chosen .badge-tier-name {
+  color: #f0b64c;
+  font-weight: 600;
+}
+
+.badge-wall-page .badge-pick,
+.badge-wall-page .badge-slot > span {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.badge-wall-hint {
+  margin: 8px 0 0;
+  color: #f0b64c;
+  font-size: 0.85rem;
+}
+
+.badge-pick {
+  display: inline-flex;
+  padding: 4px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.badge-pick.is-chosen {
+  box-shadow: 0 0 0 2px #f0b64c;
 }
 
 .badge-progress {

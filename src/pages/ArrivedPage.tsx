@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { Badge } from '@/components/Badge';
-import { getHighestTier } from '@/lib/badges';
+import { resolveDisplayBadge } from '@/lib/badges';
 import { hasPendingBlocks } from '@/lib/sessionLogic';
 
 /** 页面06：任务进港页 */
@@ -43,11 +43,11 @@ export function ArrivedPage() {
           className="arrived-captain"
         />
         {(() => {
-          const topTier = getHighestTier(settings.stats, session.aircraftId);
+          const displayBadge = resolveDisplayBadge(settings);
           const aircraft = settings.aircrafts.find((a) => a.id === session.aircraftId);
-          return topTier && aircraft ? (
+          return displayBadge && aircraft ? (
             <p className="arrived-aircraft badge-inline">
-              <Badge aircraftId={session.aircraftId} tier={topTier} size={20} />
+              <Badge aircraftId={displayBadge.aircraftId} tier={displayBadge.tier} size={20} />
               {aircraft.shortName} 执飞中
             </p>
           ) : null;

@@ -11,12 +11,15 @@ export function Badge({
   size = 40,
   locked = false,
   label,
+  fluid = false,
 }: {
   aircraftId: string;
   tier: BadgeTier;
   size?: number;
   locked?: boolean;
   label?: string;
+  /** 在等宽格子里按比例缩放，避免宽幅机型徽章互相重叠 */
+  fluid?: boolean;
 }) {
   return (
     <img
@@ -24,7 +27,11 @@ export function Badge({
       alt={label ?? `${tier} 徽章`}
       title={label}
       className={`badge-img${locked ? ' is-locked' : ''}`}
-      style={{ height: size, width: 'auto' }}
+      style={
+        fluid
+          ? { width: '100%', height: size, objectFit: 'contain' }
+          : { height: size, width: 'auto' }
+      }
       draggable={false}
     />
   );

@@ -110,6 +110,11 @@ export interface AppSettings {
   keepScreenOn: boolean;
   viewType: ViewType;
   stats: AppStats;
+  /**
+   * 航程页上展示的徽章。未选择时由已获得数量决定：
+   * 一枚都没有则不显示；只有一枚时用那一枚；多枚时回退到当前最高等级。
+   */
+  displayBadge: { aircraftId: string; tier: BadgeTier } | null;
 }
 
 /** 页面01→02→03 期间的规划草稿（仅内存，不落库） */

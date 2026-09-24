@@ -4,7 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { WheelPicker } from '@/components/WheelPicker';
 import { Badge } from '@/components/Badge';
 import { SkyBackground } from '@/components/SkyBackground';
-import { getGlobalTopBadge } from '@/lib/badges';
+import { resolveDisplayBadge } from '@/lib/badges';
 import { getWindowBounds } from '@/lib/time';
 
 /** 飞行时间读数：3小时00分钟 */
@@ -37,12 +37,8 @@ export function StartPage() {
     navigate('/plan');
   };
 
-  // 全局最高徽章：左上角展示，点击进入徽章墙；零基础用户显示虚线占位框
-  const topBadge = getGlobalTopBadge(
-    settings.stats,
-    settings.aircrafts.map((a) => a.id),
-    settings.selectedAircraftId,
-  );
+  // 左上角展示用户选定的徽章；还没有徽章时是虚线占位，点击进入徽章墙
+  const topBadge = resolveDisplayBadge(settings);
 
   return (
     <div className="page start-page">

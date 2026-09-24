@@ -70,6 +70,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   keepScreenOn: true,
   viewType: 'cockpit',
   stats: { completedVoyages: 0, totalFlownMinutes: 0, voyagesByAircraft: {} },
+  displayBadge: null,
 };
 
 export const SOUND_OPTIONS: { type: import('@/types').SoundType; label: string }[] = [

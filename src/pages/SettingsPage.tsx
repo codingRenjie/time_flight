@@ -62,7 +62,7 @@ export function SettingsPage() {
       </header>
 
       <div className="settings-hero">
-        <img src="/assets/captain-avatar.png" alt="机长头像" className="settings-avatar" />
+        <img src="/assets/captain-avatar.jpg" alt="机长头像" className="settings-avatar" />
         <div>
           <div className="settings-name">时光机长</div>
           <div className="settings-stats">
@@ -73,7 +73,7 @@ export function SettingsPage() {
       </div>
 
       <section className="card">
-        <h3 className="settings-section-title">✈️ 飞机机型配置</h3>
+        <h3 className="settings-section-title">飞机机型</h3>
         <div className="aircraft-list">
           {settings.aircrafts.map((a) => (
             <button
@@ -85,7 +85,7 @@ export function SettingsPage() {
               <img src={a.image} alt={a.name} />
               <div>
                 <div className="aircraft-name">{a.name}</div>
-                {!a.unlocked && <div className="aircraft-lock">🔒 {a.unlockHint}</div>}
+                {!a.unlocked && <div className="aircraft-lock">{a.unlockHint}</div>}
               </div>
               {a.id === settings.selectedAircraftId && a.unlocked && (
                 <span className="aircraft-check">✓</span>
@@ -95,12 +95,12 @@ export function SettingsPage() {
         </div>
         <p className="settings-hint">完成更多航程，即可解锁新机型</p>
         <button className="badge-wall-link" onClick={() => navigate('/badges')}>
-          🏅 查看我的机长徽章墙 →
+          查看机长徽章墙
         </button>
       </section>
 
       <section className="card">
-        <h3 className="settings-section-title">📌 默认固定执飞任务</h3>
+        <h3 className="settings-section-title">默认固定任务</h3>
         <p className="settings-hint">每次规划航程时自动加入任务池，不可移除</p>
         {settings.fixedTasks.map((t) => (
           <div key={t.id} className="settings-fixed-row">
@@ -143,7 +143,7 @@ export function SettingsPage() {
       </section>
 
       <section className="card">
-        <h3 className="settings-section-title">🔆 陪伴体验</h3>
+        <h3 className="settings-section-title">陪伴体验</h3>
         <label className="switch-row">
           <input
             type="checkbox"
@@ -160,7 +160,7 @@ export function SettingsPage() {
       </section>
 
       <section className="card">
-        <h3 className="settings-section-title">⏱ 延长航程</h3>
+        <h3 className="settings-section-title">延长航程</h3>
         <label className="switch-row">
           <input
             type="checkbox"
@@ -185,6 +185,10 @@ export function SettingsPage() {
           </div>
         )}
       </section>
+
+      <button className="lab-entry" onClick={() => navigate('/ui-lab')}>
+        UI 试验台
+      </button>
     </div>
   );
 }

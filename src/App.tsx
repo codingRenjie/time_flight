@@ -12,6 +12,7 @@ import { CancelledPage } from '@/pages/CancelledPage';
 import { CompletePage } from '@/pages/CompletePage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { BadgeWallPage } from '@/pages/BadgeWallPage';
+import { UiLabPage } from '@/pages/UiLabPage';
 import '@/styles/global.css';
 
 /** 会话状态路由守卫：刷新/重开时把用户带回正确的页面 */
@@ -27,8 +28,8 @@ function SessionRouter() {
 
   useEffect(() => {
     const path = location.pathname;
-    // 设置页和徽章墙任何时候都可以停留
-    if (path === '/settings' || path === '/badges') return;
+    // 设置页、徽章墙、UI 试验台任何时候都可以停留
+    if (path === '/settings' || path === '/badges' || path === '/ui-lab') return;
 
     if (!session) {
       // 无航程：只允许规划流程的三个页面
@@ -80,6 +81,7 @@ function AppRoutes() {
         <Route path="/complete" element={<CompletePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/badges" element={<BadgeWallPage />} />
+        <Route path="/ui-lab" element={<UiLabPage />} />
         <Route path="*" element={<Navigate to="/start" replace />} />
       </Routes>
     </>

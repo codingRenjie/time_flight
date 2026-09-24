@@ -16,6 +16,7 @@ export function SkyBackground({
     <div className="sky-bg" aria-hidden>
       {videoSrc ? (
         <video
+          key={videoSrc}
           className="sky-bg-media"
           src={videoSrc}
           poster={image}
@@ -30,7 +31,7 @@ export function SkyBackground({
       <div
         className="sky-bg-overlay"
         style={{
-          background: `linear-gradient(180deg, rgba(10,15,30,${dim * 0.6}) 0%, rgba(10,15,30,${dim}) 55%, rgba(10,15,30,${Math.min(1, dim + 0.25)}) 100%)`,
+          background: `linear-gradient(180deg, rgba(0,0,0,${dim * 0.6}) 0%, rgba(0,0,0,${dim}) 55%, rgba(0,0,0,${Math.min(1, dim + 0.25)}) 100%)`,
         }}
       />
     </div>

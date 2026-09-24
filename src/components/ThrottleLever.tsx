@@ -1,32 +1,26 @@
 import { useRef, useState } from 'react';
 import { audioManager } from '@/lib/audio';
 
-const TRACK_H = 280;
+/** 推杆行程占底座图高度的比例（源图握把顶 y=556 → 轨道顶 ~200，990 高） */
+const TRAVEL_RATIO = 0.36;
 /** 推过 90% 即视为起飞：真实手指很难精确停在 100% */
 const COMPLETE_THRESHOLD = 0.9;
 /** 每 10% 一个机械档位，跨档时给段落感反馈 */
 const DETENTS = 10;
 
-/**
- * 档位反馈：Android Chrome 震动；iOS Safari 无震动 API，用咔哒声替代。
- * （桌面 Chrome 的 vibrate 返回 false，同样落到音效分支，方便开发时验证）
- */
+/** 档位反馈：最初的轻量 WebAudio 咔哒。不在每档震动，避免快速来回时主线程卡顿。 */
 function fireDetentFeedback(intensity: number): void {
-  if (navigator.vibrate?.(12) !== true) {
-    audioManager.tick(intensity);
-  }
+  audioManager.tick(intensity);
 }
 
-/** 起飞确认反馈：安卓三段震动 / iOS 低沉「哐」声 */
+/** 起飞确认：安卓给一段震动；登机「噔」由 TakeoffPage 在跳转前播放 */
 function fireCompleteFeedback(): void {
-  if (navigator.vibrate?.([30, 60, 80]) !== true) {
-    audioManager.thunk();
-  }
+  navigator.vibrate?.([30, 60, 80]);
 }
 
 /**
- * 页面04 起飞油门推杆。
- * 手指按住推杆从下向上推；推过 90% 停顿 0.5s（或松手）即触发 onComplete；
+ * 页面04 起飞油门推杆（照片级：底座不动，两颗 A/T DISC 握把跟手指上移）。
+ * 手指按住从下向上推；推过 90% 停顿 0.5s（或松手）即触发 onComplete；
  * 未到阈值松手则弹回底部。
  * 同时支持键盘（↑/↓）操作，role="slider" 保证可访问性。
  *
@@ -40,7 +34,7 @@ export function ThrottleLever({
   onComplete: () => void;
   onProgress?: (progress: number) => void;
 }) {
-  const trackRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
   const progressRef = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -48,6 +42,8 @@ export function ThrottleLever({
   const completedRef = useRef(false);
   const completeTimer = useRef<number | null>(null);
   const lastDetentRef = useRef(0);
+  const dragOriginY = useRef(0);
+  const dragOriginP = useRef(0);
 
   const setP = (p: number) => {
     progressRef.current = p;
@@ -72,27 +68,17 @@ export function ThrottleLever({
   const applyProgress = (p: number) => {
     setP(p);
     onProgress?.(p);
-    // 跨过档位时给段落感反馈（震动或咔哒声，音调随档位升高）
     const detent = Math.round(p * DETENTS);
     if (detent !== lastDetentRef.current) {
       lastDetentRef.current = detent;
       fireDetentFeedback(detent / DETENTS);
     }
     if (p >= COMPLETE_THRESHOLD && completeTimer.current === null) {
-      // 推到阈值后停顿 0.5s 自动起飞
       completeTimer.current = window.setTimeout(complete, 500);
     }
     if (p < COMPLETE_THRESHOLD) {
       clearTimer();
     }
-  };
-
-  const updateFromPointer = (clientY: number) => {
-    const track = trackRef.current;
-    if (!track) return;
-    const rect = track.getBoundingClientRect();
-    const p = Math.min(1, Math.max(0, 1 - (clientY - rect.top) / rect.height));
-    applyProgress(p);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -104,12 +90,21 @@ export function ThrottleLever({
       /* 合成事件或个别浏览器不支持时忽略 */
     }
     setDragging(true);
-    updateFromPointer(e.clientY);
+    dragOriginY.current = e.clientY;
+    dragOriginP.current = progressRef.current;
+    // 按下手势内解锁，并静音挂上背景循环（进页面05 时只开音量，不必再等一次点击）
+    audioManager.unlock();
+    audioManager.armBackground();
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragging || completedRef.current) return;
-    updateFromPointer(e.clientY);
+    const stage = stageRef.current;
+    if (!stage) return;
+    const travel = stage.getBoundingClientRect().height * TRAVEL_RATIO;
+    if (travel <= 0) return;
+    const next = Math.min(1, Math.max(0, dragOriginP.current + (dragOriginY.current - e.clientY) / travel));
+    applyProgress(next);
   };
 
   const handlePointerUp = () => {
@@ -117,11 +112,9 @@ export function ThrottleLever({
     setDragging(false);
     clearTimer();
     if (progressRef.current >= COMPLETE_THRESHOLD) {
-      // 推过阈值后松手：直接起飞，不再弹回
       complete();
       return;
     }
-    // 弹回底部（CSS transition 生效），静默复位档位，不触发反馈
     setP(0);
     lastDetentRef.current = 0;
     onProgress?.(0);
@@ -138,18 +131,11 @@ export function ThrottleLever({
     }
   };
 
-  const leverY = (1 - progress) * (TRACK_H - 72);
-
   return (
     <div className="throttle-wrap">
-      <div className="throttle-hint-arrows" aria-hidden>
-        <span>⌃</span>
-        <span>⌃</span>
-      </div>
       <div
-        ref={trackRef}
-        className={`throttle-track ${dragging ? 'is-dragging' : ''} ${completed ? 'is-complete' : ''}`}
-        style={{ height: TRACK_H }}
+        ref={stageRef}
+        className={`throttle-stage ${dragging ? 'is-dragging' : ''} ${completed ? 'is-complete' : ''}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -162,19 +148,26 @@ export function ThrottleLever({
         tabIndex={0}
         onKeyDown={handleKeyDown}
       >
-        <div className="throttle-fill" style={{ height: progress * TRACK_H }} />
-        <div
-          className="throttle-knob"
+        <img className="throttle-base" src="/assets/throttle/base.jpg" alt="" draggable={false} />
+        <img
+          className="throttle-lever"
+          src="/assets/throttle/lever.png"
+          alt=""
+          draggable={false}
           style={{
-            top: leverY,
-            transition: dragging ? 'none' : 'top 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.2)',
+            transform: `translate3d(0, ${-progress * TRAVEL_RATIO * 100}%, 0)`,
+            transition: dragging ? 'none' : 'transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1.2)',
           }}
-        >
-          <div className="throttle-knob-grip" />
-        </div>
+        />
+        {progress < 0.12 && (
+          <div className="throttle-hint-arrows" aria-hidden>
+            <span>⌃</span>
+            <span>⌃</span>
+          </div>
+        )}
       </div>
       <p className="throttle-label">
-        {completed ? '起飞！' : progress > 0.7 ? '继续推……' : '按住推杆，向上推到底起飞'}
+        {completed ? '起飞！' : progress > 0.7 ? '继续推……' : '按住油门，向上推到底起飞'}
       </p>
     </div>
   );

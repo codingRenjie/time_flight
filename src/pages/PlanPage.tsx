@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { Modal } from '@/components/Modal';
 import { Stepper } from '@/components/Stepper';
 import {
+  AIRCRAFT_INFO,
   TASK_DURATION_MAX,
   TASK_DURATION_MIN,
   TASK_DURATION_STEP,
@@ -27,6 +28,7 @@ export function PlanPage() {
   const navigate = useNavigate();
   const { planDraft, setPlanTasks, settings, updateSettings } = useApp();
   const [aircraftModal, setAircraftModal] = useState(false);
+  const [aircraftInfoOpen, setAircraftInfoOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newMinutes, setNewMinutes] = useState(30);
 
@@ -81,18 +83,42 @@ export function PlanPage() {
         <button className="icon-btn" aria-label="返回" onClick={() => navigate('/start')}>
           ‹
         </button>
-        <div className="topbar-title">航程设定</div>
+        <div className="topbar-title-group">
+          <div className="topbar-eyebrow">FLIGHT PLAN</div>
+          <div className="topbar-title">航程设定</div>
+        </div>
         <div style={{ width: 44 }} />
       </header>
 
-      <button className="aircraft-card" onClick={() => setAircraftModal(true)}>
+      {/* 点卡片区域 → 机型介绍弹窗；精确点「更换」→ 换机弹窗 */}
+      <div
+        className="aircraft-card"
+        role="button"
+        tabIndex={0}
+        aria-label={`查看${aircraft.name}介绍`}
+        onClick={() => setAircraftInfoOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setAircraftInfoOpen(true);
+          }
+        }}
+      >
         <img src={aircraft.image} alt={aircraft.name} className="aircraft-img" />
         <div className="aircraft-meta">
           <div className="aircraft-label">执飞机型</div>
           <div className="aircraft-name">{aircraft.name}</div>
         </div>
-        <span className="aircraft-change">更换 ›</span>
-      </button>
+        <button
+          className="aircraft-change"
+          onClick={(e) => {
+            e.stopPropagation();
+            setAircraftModal(true);
+          }}
+        >
+          更换 ›
+        </button>
+      </div>
 
       <div className={`fuel-summary card ${overflow ? 'is-overflow' : ''}`}>
         <div className="fuel-line">
@@ -166,6 +192,15 @@ export function PlanPage() {
           {tasks.length === 0 ? '请先添加任务' : '准备执飞'}
         </button>
       </div>
+
+      {/* 机型介绍弹窗：照片 + 简介 */}
+      <Modal open={aircraftInfoOpen} onClose={() => setAircraftInfoOpen(false)}>
+        <img src={aircraft.heroImage} alt={aircraft.name} className="aircraft-info-img" />
+        <h2 className="aircraft-info-name">{aircraft.name}</h2>
+        <p className="aircraft-info-desc">
+          {AIRCRAFT_INFO[aircraft.id]?.description ?? '暂无该机型的介绍。'}
+        </p>
+      </Modal>
 
       <Modal open={aircraftModal} onClose={() => setAircraftModal(false)}>
         <h2>选择机型</h2>

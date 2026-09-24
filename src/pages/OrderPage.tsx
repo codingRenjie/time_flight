@@ -30,7 +30,10 @@ export function OrderPage() {
     <div className="page order-page">
       <header className="page-topbar">
         <div style={{ width: 44 }} />
-        <div className="topbar-title">任务顺序</div>
+        <div className="topbar-title-group">
+          <div className="topbar-eyebrow">FLIGHT ORDER</div>
+          <div className="topbar-title">任务顺序</div>
+        </div>
         <div style={{ width: 44 }} />
       </header>
 
@@ -75,7 +78,7 @@ export function OrderPage() {
           style={{ flex: 1 }}
           onClick={() => void handleConfirm()}
         >
-          立即执飞 ✈️
+          立即执飞
         </button>
       </div>
     </div>

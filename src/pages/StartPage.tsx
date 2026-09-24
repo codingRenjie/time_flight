@@ -3,13 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { WheelPicker } from '@/components/WheelPicker';
 import { Badge } from '@/components/Badge';
+import { SkyBackground } from '@/components/SkyBackground';
 import { getGlobalTopBadge } from '@/lib/badges';
 import { getWindowBounds } from '@/lib/time';
 
-function formatTotal(minutes: number): string {
+/** 飞行时间读数：3小时00分钟 */
+function formatFlightTime(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
-  return h > 0 ? `${h}小时${m > 0 ? `${m}分钟` : ''}` : `${m}分钟`;
+  return `${h}小时${String(m).padStart(2, '0')}分钟`;
 }
 
 /** 页面01：航程开始页 */
@@ -44,6 +46,11 @@ export function StartPage() {
 
   return (
     <div className="page start-page">
+      <SkyBackground
+        image="/assets/bg-start.jpg"
+        videoSrc="/assets/video/start-takeoff.mp4"
+        dim={0.4}
+      />
       <header className="page-topbar">
         <button
           className="icon-btn badge-entry"
@@ -66,25 +73,36 @@ export function StartPage() {
       </header>
 
       <div className="start-hero">
-        <div className="start-plane">✈️</div>
-        <h1 className="page-title">Time Pilot</h1>
+        <img className="start-mark" src="/assets/logo-mark.png" alt="" />
+        <h1 className="start-title-cn">时光机长</h1>
+        <div className="start-title-en">TIME PILOT</div>
         <p className="page-subtitle">今晚的航程，从这里开始</p>
       </div>
 
       <div className="card">
         <div className="wheel-row">
           <div className="wheel-field">
-            <div className="wheel-label">开始时间</div>
+            <div className="wheel-label">
+              <span className="dep-code">DEP</span>
+              <span className="wheel-name">开始时间</span>
+            </div>
             <WheelPicker value={start} onChange={setStart} />
           </div>
+          <div className="runway-divider" aria-hidden="true" />
           <div className="wheel-field">
-            <div className="wheel-label">结束时间</div>
+            <div className="wheel-label">
+              <span className="dep-code">ARR</span>
+              <span className="wheel-name">结束时间</span>
+            </div>
             <WheelPicker value={end} onChange={setEnd} />
           </div>
         </div>
 
         <div className="start-total">
-          航程总时长 <strong>{formatTotal(totalMinutes)}</strong>
+          <div className="flight-time">
+            <span className="flight-time-label">飞行时间：</span>
+            <strong className="flight-time-value">{formatFlightTime(totalMinutes)}</strong>
+          </div>
           {endPassed && <div className="start-warning">结束时间已经过了，请重新选择</div>}
           {!endPassed && tooShort && (
             <div className="start-warning">航程太短啦，至少 30 分钟</div>
@@ -102,7 +120,7 @@ export function StartPage() {
       </div>
 
       <button
-        className="btn btn-primary btn-block btn-lg"
+        className="btn btn-glass btn-block btn-lg"
         disabled={tooShort || endPassed}
         onClick={() => void handleStart()}
       >

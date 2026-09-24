@@ -26,14 +26,19 @@ function post(event: DebugEvent) {
   }).catch(() => undefined);
 }
 
-export function installDebugBeacon() {
-  const base = () => ({
-    t: new Date().toISOString(),
-    href: location.href,
-    ua: navigator.userAgent,
-    secure: window.isSecureContext,
-  });
+const base = () => ({
+  t: new Date().toISOString(),
+  href: location.href,
+  ua: navigator.userAgent,
+  secure: window.isSecureContext,
+});
 
+/** 临时诊断日志（音频排障用），写入 dev server 的 .tmp/device-debug.jsonl */
+export function logDebug(type: string, message: string): void {
+  post({ ...base(), type, message });
+}
+
+export function installDebugBeacon() {
   post({ ...base(), type: 'boot', message: 'boot' });
 
   window.addEventListener('error', (e) => {

@@ -23,9 +23,12 @@ export interface Aircraft {
   id: string;
   /** 展示全名，如 庞巴迪 Challenger 650 */
   name: string;
-  /** 短名，如 Challenger 650 */
+  /** 短名，如 Challenger 350 */
   shortName: string;
+  /** 列表与卡片上的缩略图 */
   image: string;
+  /** 机型介绍弹窗里的大图 */
+  heroImage: string;
   unlocked: boolean;
   unlockHint?: string;
 }

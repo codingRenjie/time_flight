@@ -64,8 +64,8 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 /** 机型解锁规则：按累计完成航程数 */
 const UNLOCK_RULES: { aircraftId: string; voyages: number }[] = [
-  { aircraftId: 'ac-g650', voyages: 5 },
-  { aircraftId: 'ac-bell407', voyages: 15 },
+  { aircraftId: 'ac-pc12', voyages: 5 },
+  { aircraftId: 'ac-challenger350', voyages: 15 },
 ];
 
 export function AppProvider({ children }: { children: ReactNode }) {

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { audioManager } from '../lib/audio';
+import { logDebug } from '../lib/debugBeacon';
 
-const ITEM_H = 44;
+const ITEM_H = 36;
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
@@ -20,6 +22,8 @@ function WheelColumn({
   const ref = useRef<HTMLDivElement>(null);
   const scrollTimer = useRef<number | null>(null);
   const didInit = useRef(false);
+  const lastIdx = useRef(Math.max(0, values.indexOf(selected)));
+  const detentLogCount = useRef(0);
 
   // 初始滚动到选中项
   useEffect(() => {
@@ -30,6 +34,20 @@ function WheelColumn({
   }, [values, selected]);
 
   const handleScroll = () => {
+    const el = ref.current;
+    if (el) {
+      // 每转过一格：咔哒声 + 轻震动（iOS 原生转盘手感）
+      const idx = Math.min(
+        values.length - 1,
+        Math.max(0, Math.round(el.scrollTop / ITEM_H)),
+      );
+      if (idx !== lastIdx.current) {
+        lastIdx.current = idx;
+        if (detentLogCount.current++ < 30) logDebug('wheel', `detent ${ariaLabel} idx=${idx}`);
+        audioManager.click();
+        navigator.vibrate?.(4);
+      }
+    }
     if (scrollTimer.current !== null) window.clearTimeout(scrollTimer.current);
     scrollTimer.current = window.setTimeout(() => {
       const el = ref.current;
@@ -46,7 +64,15 @@ function WheelColumn({
 
   return (
     <div className="wheel-col" role="listbox" aria-label={ariaLabel}>
-      <div className="wheel-scroll" ref={ref} onScroll={handleScroll}>
+      <div
+        className="wheel-scroll"
+        ref={ref}
+        onScroll={handleScroll}
+        onPointerDown={() => {
+          logDebug('wheel', `pointerdown ${ariaLabel}`);
+          audioManager.unlock();
+        }}
+      >
         <div style={{ height: ITEM_H * 2 }} />
         {values.map((v) => (
           <div

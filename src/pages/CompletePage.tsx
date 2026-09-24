@@ -5,6 +5,7 @@ import { SkyBackground } from '@/components/SkyBackground';
 import { Badge } from '@/components/Badge';
 import { getTierLabel } from '@/lib/badges';
 import { getSessionSummary, getTaskReviews } from '@/lib/sessionLogic';
+import { taxiBackground } from '@/lib/aircraftMedia';
 import type { BadgeTier } from '@/types';
 
 /** 页面08：全部完成页 */
@@ -30,11 +31,13 @@ export function CompletePage() {
     navigate('/start', { replace: true });
   };
 
+  const taxi = taxiBackground(session.aircraftId);
+
   return (
-    <div className="fullscreen-page">
-      <SkyBackground image="/assets/bg-taxiing.png" dim={0.55} />
+    <div className="fullscreen-page complete-page">
+      <SkyBackground image={taxi.image} videoSrc={taxi.videoSrc} dim={0.62} />
       <div className="fullscreen-content complete-content">
-        <div className="checkpoint-badge">🛬 全部进港</div>
+        <p className="topbar-eyebrow">全部进港</p>
         <h1 className="complete-title">今日航程圆满完成！</h1>
 
         {newBadge &&
@@ -49,8 +52,8 @@ export function CompletePage() {
                   label={getTierLabel(newBadge)}
                 />
                 <div className="badge-celebration-text">
-                  🎉 获得{aircraft ? `${aircraft.shortName} ` : ''}
-                  {getTierLabel(newBadge)}！
+                  获得{aircraft ? `${aircraft.shortName} ` : ''}
+                  {getTierLabel(newBadge)}
                 </div>
               </div>
             );
@@ -68,15 +71,11 @@ export function CompletePage() {
             </div>
             <div className="stat">
               <div className="stat-label">已完成</div>
-              <div className="stat-value" style={{ color: 'var(--success)' }}>
-                {summary.completed}
-              </div>
+              <div className="stat-value is-done">{summary.completed}</div>
             </div>
             <div className="stat">
               <div className="stat-label">未完成</div>
-              <div className="stat-value" style={{ color: 'var(--warn)' }}>
-                {summary.incomplete}
-              </div>
+              <div className="stat-value is-incomplete">{summary.incomplete}</div>
             </div>
             <div className="stat">
               <div className="stat-label">总用时</div>

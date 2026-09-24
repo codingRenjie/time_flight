@@ -28,19 +28,21 @@ export function CircularTimer({
     <div className={`circular-timer ${overtime ? 'is-overtime' : ''}`}>
       <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
         <circle
+          className="ct-track"
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={R}
           fill="none"
-          stroke="rgba(148,163,184,0.18)"
+          stroke="currentColor"
           strokeWidth={STROKE}
         />
         <circle
+          className="ct-progress"
           cx={SIZE / 2}
           cy={SIZE / 2}
           r={R}
           fill="none"
-          stroke={overtime ? 'var(--danger)' : 'var(--accent)'}
+          stroke={overtime ? 'var(--danger)' : 'currentColor'}
           strokeWidth={STROKE}
           strokeLinecap="round"
           strokeDasharray={`${dash} ${CIRC}`}

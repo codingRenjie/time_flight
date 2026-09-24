@@ -38,12 +38,10 @@ export function ArrivedPage() {
     <div className="fullscreen-page arrived-page">
       <div className="arrived-content">
         <img
-          src="/assets/captain-thumbsup.png"
+          src="/assets/captain-thumbsup.jpg"
           alt="机长点赞"
           className="arrived-captain"
         />
-        <div className="checkpoint-badge">🛬 任务进港</div>
-        <h1 className="arrived-title">{landed?.title ?? '本段任务'}</h1>
         {(() => {
           const topTier = getHighestTier(settings.stats, session.aircraftId);
           const aircraft = settings.aircrafts.find((a) => a.id === session.aircraftId);
@@ -54,6 +52,10 @@ export function ArrivedPage() {
             </p>
           ) : null;
         })()}
+        <h1 className="arrived-title">
+          <span>{landed?.title ?? '本段任务'}</span>
+          <span className="arrived-status">已进港</span>
+        </h1>
 
         <div className="card arrived-card">
           <div className="stat-row">
@@ -99,7 +101,7 @@ export function ArrivedPage() {
             className="btn btn-primary btn-block btn-lg"
             onClick={() => void handleFinish()}
           >
-            已完成所有任务，结束航程 🎉
+            已完成所有任务，结束航程
           </button>
         )}
       </div>

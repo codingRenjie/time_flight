@@ -14,6 +14,10 @@
   --danger: #f87171;
   --radius: 16px;
   --touch: 48px;
+  /* 按钮设计变量（UI 试验台可调；btn-lg 在此基础上派生） */
+  --btn-radius: 12px;
+  --btn-padding-x: 20px;
+  --btn-font: 1rem;
   font-family: 'SF Pro Text', 'PingFang SC', 'Helvetica Neue', sans-serif;
   line-height: 1.5;
   color: var(--text);
@@ -134,10 +138,11 @@ button {
 
 .btn {
   min-height: var(--touch);
-  padding: 0 20px;
+  padding: 0 var(--btn-padding-x);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--btn-radius);
   cursor: pointer;
+  font-size: var(--btn-font);
   font-weight: 600;
   transition: transform 0.1s ease, opacity 0.1s ease;
 }
@@ -172,10 +177,11 @@ button {
   cursor: not-allowed;
 }
 
+/* 大按钮在基础变量上派生，试验台调一处全站联动 */
 .btn-lg {
-  min-height: 56px;
-  font-size: 1.1rem;
-  border-radius: 14px;
+  min-height: calc(var(--touch) + 8px);
+  font-size: calc(var(--btn-font) + 0.1rem);
+  border-radius: calc(var(--btn-radius) + 2px);
 }
 
 .btn-block {
@@ -259,7 +265,7 @@ button {
 
 .start-hero {
   text-align: center;
-  margin: 24px 0 28px;
+  margin: 8px 0 20px;
 }
 
 .start-plane {
@@ -280,18 +286,19 @@ button {
 
 .wheel-row {
   display: flex;
-  gap: 16px;
+  gap: 10px;
 }
 
 .wheel-field {
   flex: 1;
+  min-width: 0;
   text-align: center;
 }
 
 .wheel-label {
   color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-bottom: 8px;
+  font-size: 0.82rem;
+  margin-bottom: 6px;
 }
 
 .wheel-picker {
@@ -299,15 +306,16 @@ button {
   align-items: center;
   justify-content: center;
   gap: 4px;
+  width: 100%;
 }
 
 .wheel-col {
   position: relative;
-  height: 220px;
-  width: 76px;
+  height: 180px;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 72px;
   overflow: hidden;
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.55);
   mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
   -webkit-mask-image: linear-gradient(180deg, transparent, #000 25%, #000 75%, transparent);
 }
@@ -327,31 +335,33 @@ button {
   display: grid;
   place-items: center;
   scroll-snap-align: center;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-variant-numeric: tabular-nums;
-  color: var(--text-muted);
+  color: #636366;
   cursor: pointer;
 }
 
 .wheel-item.is-selected {
-  color: var(--text);
+  color: #fff;
   font-weight: 700;
 }
 
+/* D1：选中行不要色块，只要发丝分割线 + 极淡横带（iOS 原生感） */
 .wheel-highlight {
   position: absolute;
-  left: 6px;
-  right: 6px;
-  border-radius: 10px;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  border-top: 0.5px solid rgba(255, 255, 255, 0.28);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.28);
   pointer-events: none;
 }
 
 .wheel-sep {
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .start-total {
@@ -401,6 +411,9 @@ button {
   color: var(--text);
   cursor: pointer;
   text-align: left;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
 .aircraft-img {
@@ -424,9 +437,36 @@ button {
   font-weight: 700;
 }
 
+/* 「更换」是卡片内的独立按钮：精确点击才触发换机，扩大纵向热区便于点按 */
 .aircraft-change {
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
   color: var(--accent);
   font-size: 0.9rem;
+  padding: 10px 0 10px 12px;
+}
+
+/* 机型介绍弹窗 */
+.aircraft-info-img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  margin-bottom: 12px;
+}
+
+.aircraft-info-name {
+  margin: 0 0 8px;
+}
+
+.aircraft-info-desc {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+  margin: 0;
 }
 
 .fuel-summary {
@@ -703,87 +743,106 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  width: 100%;
+}
+
+.throttle-stage {
+  position: relative;
+  width: min(100%, calc((100dvh - 220px) * 815 / 990), 420px);
+  aspect-ratio: 815 / 990;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.throttle-stage.is-dragging {
+  cursor: grabbing;
+}
+
+.throttle-stage > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
 }
 
 .throttle-hint-arrows {
+  position: absolute;
+  top: 28%;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   color: var(--accent);
-  font-size: 1.6rem;
-  line-height: 1;
+  font-size: 1.4rem;
+  line-height: 0.85;
+  pointer-events: none;
   animation: arrow-bounce 1.2s ease-in-out infinite;
 }
 
 @keyframes arrow-bounce {
   0%,
   100% {
-    transform: translateY(6px);
+    transform: translateX(-50%) translateY(6px);
     opacity: 0.5;
   }
   50% {
-    transform: translateY(-4px);
+    transform: translateX(-50%) translateY(-4px);
     opacity: 1;
   }
-}
-
-.throttle-track {
-  position: relative;
-  width: 88px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  overflow: visible;
-  touch-action: none;
-  cursor: grab;
-}
-
-.throttle-track.is-dragging {
-  cursor: grabbing;
-}
-
-.throttle-fill {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  border-radius: 999px;
-  background: linear-gradient(0deg, var(--accent-dim), var(--accent));
-  opacity: 0.55;
-  transition: height 0.05s linear;
-}
-
-.throttle-knob {
-  position: absolute;
-  left: 50%;
-  margin-left: -36px;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, #e2e8f0, #94a3b8);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  display: grid;
-  place-items: center;
-}
-
-.throttle-track.is-complete .throttle-knob {
-  background: linear-gradient(145deg, var(--accent), var(--accent-dim));
-}
-
-.throttle-knob-grip {
-  width: 44px;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.35);
-  box-shadow:
-    0 -14px 0 rgba(15, 23, 42, 0.35),
-    0 14px 0 rgba(15, 23, 42, 0.35);
 }
 
 .throttle-label {
   color: var(--text-muted);
   margin: 0;
+}
+
+/* ---------- 页面04 D1：纯黑 + 毛玻璃 + 琥珀 ---------- */
+
+.takeoff-page {
+  /* 背景图加载前的兜底色 */
+  background: #000;
+}
+
+.takeoff-page .takeoff-header {
+  margin-bottom: 12px;
+}
+
+.takeoff-page .takeoff-header .topbar-eyebrow {
+  margin-bottom: 8px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.takeoff-page .takeoff-header h1 {
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
+}
+
+.takeoff-page .takeoff-aircraft {
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.takeoff-page .throttle-stage {
+  filter: drop-shadow(0 16px 40px rgba(0, 0, 0, 0.65));
+}
+
+.takeoff-page .throttle-hint-arrows {
+  color: #f0b64c;
+  text-shadow: 0 0 12px rgba(240, 182, 76, 0.45);
+}
+
+.takeoff-page .throttle-stage.is-complete .throttle-lever {
+  filter: drop-shadow(0 0 10px rgba(240, 182, 76, 0.45));
+}
+
+.takeoff-page .throttle-label {
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 
 /* ---------- 页面05：执飞过程 ---------- */
@@ -893,6 +952,99 @@ button {
   flex: 1;
 }
 
+/* ---------- 页面05 D1：纯黑 + 毛玻璃 + 琥珀 ---------- */
+
+.fly-page {
+  background: #000;
+}
+
+.fly-page .icon-btn.glass {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.fly-page .fly-flightno {
+  color: #f0b64c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.fly-page .ct-track {
+  color: rgba(255, 255, 255, 0.14);
+}
+
+.fly-page .ct-progress {
+  color: #f0b64c;
+}
+
+.fly-page .ct-label,
+.fly-page .ct-sub {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.fly-page .fly-hint-ok {
+  color: #f0b64c;
+}
+
+.fly-page .btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.fly-page .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fly-page .btn-secondary.is-tagged {
+  background: rgba(240, 182, 76, 0.16);
+  color: #f0b64c;
+  box-shadow: inset 0 0 0 1px rgba(240, 182, 76, 0.45);
+}
+
+.fly-page .modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.fly-page .modal {
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.fly-page .sound-option {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.fly-page .sound-option.is-selected {
+  border-color: rgba(240, 182, 76, 0.65);
+  color: #f0b64c;
+}
+
+.fly-page .volume-row {
+  color: #8e8e93;
+}
+
+.fly-page .switch-row {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.fly-page input[type='range'],
+.fly-page input[type='checkbox'] {
+  accent-color: #f0b64c;
+}
+
 /* ---------- 弹窗 ---------- */
 
 .modal-backdrop {
@@ -976,7 +1128,7 @@ button {
 /* ---------- 页面06：任务进港 ---------- */
 
 .arrived-page {
-  background: radial-gradient(circle at 50% 20%, #1e3a5f 0%, var(--bg) 60%);
+  background: #000;
 }
 
 .arrived-content {
@@ -998,25 +1150,30 @@ button {
   height: 150px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid rgba(74, 222, 128, 0.5);
+  border: 3px solid rgba(240, 182, 76, 0.45);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   animation: floaty 3.6s ease-in-out infinite;
-  margin-bottom: 16px;
-}
-
-.checkpoint-badge {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(74, 222, 128, 0.15);
-  color: var(--success);
-  font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .arrived-title {
   margin: 0 0 18px;
   font-size: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  column-gap: 0.4em;
+  row-gap: 4px;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
+}
+
+.arrived-status {
+  color: #f0b64c;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
 }
 
 .arrived-card {
@@ -1024,43 +1181,98 @@ button {
 }
 
 .arrived-flag {
-  color: var(--warn);
+  color: #f0b64c;
   font-size: 0.9rem;
   margin: 12px 0 0;
 }
 
 .arrived-bonus {
-  color: var(--success);
+  color: #f0b64c;
   font-size: 0.9rem;
   margin: 12px 0 0;
 }
 
 .arrived-next {
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.55);
   margin: 12px 0 0;
   padding-top: 12px;
-  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .arrived-content .btn-block {
   margin-top: 8px;
 }
 
-/* ---------- 页面07：航程取消 ---------- */
+/* ---------- 页面06 D1：纯黑 + 毛玻璃 + 琥珀 ---------- */
+
+.arrived-page .arrived-aircraft {
+  margin: 0 0 16px;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.arrived-page .card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.arrived-page .stat {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.arrived-page .stat-label {
+  color: #8e8e93;
+}
+
+.arrived-page .stat-value {
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.arrived-page .btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* ---------- 页面07：航程取消（D1 纯黑 + 毛玻璃） ---------- */
+
+.cancelled-page {
+  background: #000;
+}
 
 .cancelled-content {
   text-align: center;
 }
 
 .cancelled-title {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   margin: 0 0 8px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  max-width: 12em;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
 }
 
 .cancelled-sub {
-  color: rgba(248, 250, 252, 0.75);
-  margin: 0 0 32px;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0 0 28px;
+  max-width: 16em;
+  font-size: 0.92rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.cancelled-page .btn-primary {
+  width: 80%;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
 }
 
 /* ---------- 页面08：全部完成 ---------- */
@@ -1073,7 +1285,8 @@ button {
 .complete-title {
   font-size: 1.5rem;
   margin: 0 0 20px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
 }
 
 .complete-card {
@@ -1090,8 +1303,9 @@ button {
 .complete-rate-value {
   font-size: 3rem;
   font-weight: 800;
-  color: var(--accent);
+  color: #f0b64c;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .complete-stats {
@@ -1171,6 +1385,123 @@ button {
   color: var(--warn);
 }
 
+/* ---------- 页面08 D1：纯黑 + 毛玻璃 + 琥珀 ---------- */
+
+.complete-page {
+  background: #000;
+}
+
+.complete-page .topbar-eyebrow {
+  margin-bottom: 8px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.complete-page .complete-title {
+  font-size: 1.28rem;
+  margin-bottom: 14px;
+  max-width: 16em;
+}
+
+.complete-page .badge-celebration {
+  margin: 2px 0 12px;
+}
+
+.complete-page .badge-celebration-text {
+  font-size: 0.92rem;
+  max-width: 16em;
+  text-align: center;
+}
+
+.complete-page .card {
+  width: 80%;
+  padding: 14px 12px;
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.complete-page .complete-rate {
+  margin-bottom: 12px;
+}
+
+.complete-page .complete-rate-value {
+  font-size: 2.35rem;
+}
+
+.complete-page .stat {
+  min-width: 0;
+  padding: 7px 2px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.complete-page .complete-stats {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.complete-page .stat-label {
+  color: #8e8e93;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.complete-page .stat-value {
+  color: #fff;
+  font-size: 1.02rem;
+}
+
+.complete-page .stat-value.is-incomplete {
+  color: #f0b64c;
+}
+
+.complete-page .review-list {
+  margin-top: 12px;
+}
+
+.complete-page .review-item {
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.complete-page .review-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.complete-page .review-title {
+  font-size: 0.9rem;
+}
+
+.complete-page .review-time {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.72rem;
+}
+
+.complete-page .review-flag {
+  font-size: 0.78rem;
+}
+
+.complete-page .review-item.is-done .review-flag {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.complete-page .review-item.is-incomplete .review-flag {
+  color: #f0b64c;
+}
+
+.complete-page .btn-primary {
+  width: 80%;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
 /* ---------- 页面09：系统设置 ---------- */
 
 .settings-hero {
@@ -1185,7 +1516,7 @@ button {
   height: 64px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid rgba(56, 189, 248, 0.5);
+  border: 2px solid rgba(240, 182, 76, 0.7);
 }
 
 .settings-name {
@@ -1194,7 +1525,7 @@ button {
 }
 
 .settings-stats {
-  color: var(--text-muted);
+  color: #8e8e93;
   font-size: 0.85rem;
 }
 
@@ -1204,7 +1535,7 @@ button {
 }
 
 .settings-hint {
-  color: var(--text-muted);
+  color: #8e8e93;
   font-size: 0.85rem;
   margin: 8px 0 0;
 }
@@ -1217,13 +1548,27 @@ button {
   flex-wrap: wrap;
   margin-bottom: 10px;
   padding: 10px 12px;
-  background: var(--bg-soft);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
 }
 
+.settings-page .settings-fixed-row {
+  flex-wrap: nowrap;
+}
+
+.settings-page .settings-fixed-row .stepper,
+.settings-fixed-delete {
+  flex-shrink: 0;
+}
+
 .settings-fixed-name {
-  flex: 1 1 100px;
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .settings-fixed-delete {
@@ -1233,7 +1578,7 @@ button {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.45);
   font-size: 18px;
   cursor: pointer;
 }
@@ -1249,7 +1594,76 @@ button {
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 12px;
-  color: var(--text-muted);
+  color: #8e8e93;
+}
+
+.settings-extend-row .settings-hint {
+  margin: 0;
+}
+
+/* 页面09 D1：纯黑 + 毛玻璃 + 琥珀 */
+.settings-page {
+  background: #000;
+}
+
+.settings-page .icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.settings-page .card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.settings-page .aircraft-option {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-page .aircraft-option.is-selected {
+  border-color: rgba(240, 182, 76, 0.7);
+  box-shadow: 0 0 0 1px rgba(240, 182, 76, 0.7);
+}
+
+.settings-page .aircraft-check {
+  color: #f0b64c;
+}
+
+.settings-page .aircraft-lock {
+  color: #8e8e93;
+}
+
+.settings-page .stepper-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.settings-page .pool-name {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.settings-page .pool-name::placeholder {
+  color: #636366;
+}
+
+.settings-page .btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.settings-page .switch-row {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.settings-page input[type='checkbox'] {
+  accent-color: #f0b64c;
 }
 
 /* ---------- 页面10：再次起飞 ---------- */
@@ -1260,14 +1674,18 @@ button {
 
 .next-task-title {
   font-size: 2rem;
-  margin: 4px 0;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  margin: 8px 0 4px;
+  color: #fff;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
 }
 
 .next-task-duration {
   font-size: 1.2rem;
-  color: rgba(248, 250, 252, 0.8);
-  margin: 0 0 40px;
+  font-weight: 700;
+  color: #f0b64c;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
 }
 
 .cancel-voyage-btn {
@@ -1285,6 +1703,63 @@ button {
   color: rgba(248, 250, 252, 0.75);
 }
 
+/* ---------- 页面10 D1：纯黑 + 毛玻璃 + 琥珀 ---------- */
+
+.next-takeoff-page {
+  background: #000;
+}
+
+.next-takeoff-page .topbar-eyebrow {
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.next-takeoff-page .next-aircraft {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.next-takeoff-page .btn-primary {
+  margin-top: 36px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.next-takeoff-page .cancel-voyage-btn {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.next-takeoff-page .modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.next-takeoff-page .modal {
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.next-takeoff-page .modal p {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.next-takeoff-page .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.next-takeoff-page .btn-danger {
+  background: rgba(255, 69, 58, 0.16);
+  color: #ff6b61;
+}
+
 /* ---------- 徽章系统 ---------- */
 
 /* 页面01：固定一屏，不可上下滑动 */
@@ -1292,6 +1767,133 @@ button {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
+  /* D1：纯黑底（背景图加载前的兜底色） */
+  background: #000;
+  /* 作为 SkyBackground 绝对定位的容器 */
+  position: relative;
+}
+
+/* 内容层压在背景图之上 */
+.start-page > *:not(.sky-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* 标题组：中文主标题居中，英文小字在下 */
+.start-title-cn {
+  font-size: clamp(2.2rem, 9vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.65);
+}
+
+.start-title-en {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  letter-spacing: 0.35em;
+  /* 补偿末字符的字距，视觉居中 */
+  padding-left: 0.35em;
+  color: rgba(255, 255, 255, 0.55);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* D1 纯黑航空风：卡片与顶栏按钮换成毛玻璃质感 */
+.start-page .card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.start-page .icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* DEP/ARR 出发屏标签 */
+.dep-code {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #f0b64c;
+  margin-right: 4px;
+}
+
+.start-page .wheel-label,
+.start-page .wheel-name {
+  color: #f0b64c;
+  font-weight: 700;
+}
+
+/* 两个滚轮之间的跑道中线虚线 */
+.runway-divider {
+  width: 0;
+  border-left: 2px dashed rgba(255, 255, 255, 0.22);
+  margin: 30px 0 10px;
+}
+
+/* FLIGHT TIME 飞行计算机读数 */
+.flight-time {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+}
+
+.flight-time-label {
+  font-size: 0.9rem;
+  color: #8e8e93;
+}
+
+.flight-time-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f0b64c;
+}
+
+/* 照片背景上的文字可读性 */
+.start-page .page-subtitle {
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+}
+
+.start-page input[type='checkbox'] {
+  accent-color: #f0b64c;
+}
+
+/* 毛玻璃主按钮（D1 风格） */
+.btn-glass {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.start-page .btn-glass {
+  background: #f0b64c;
+  border: 2px solid #fff4d6;
+  color: #000;
+  font-weight: 700;
+  box-shadow:
+    0 0 0 4px rgba(240, 182, 76, 0.35),
+    0 8px 22px rgba(0, 0, 0, 0.5);
+}
+
+.start-page .btn-glass:disabled {
+  opacity: 0.45;
+  background: #f0b64c;
+  border-color: #fff4d6;
+  color: #000;
+  box-shadow: none;
+}
+
+/* 标题上方的翼章：原尺寸的一半，深色填成白色 */
+.start-mark {
+  display: block;
+  width: 84px;
+  height: auto;
+  margin: 0 auto 8px;
 }
 
 /* 页面01左上角徽章入口（与右上角设置按钮对称） */
@@ -1306,22 +1908,254 @@ button {
   border-radius: 50%;
 }
 
+/* ---------- 页面02：航程设定（D1 黑底 + 磨砂玻璃 + 琥珀点缀） ---------- */
+
+.plan-page {
+  background: #000;
+}
+
+.plan-page .icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 顶栏标题组：琥珀英文小标 + 中文标题（呼应页面01的 TIME PILOT；各页面 TSX 自行选用） */
+.topbar-title-group {
+  text-align: center;
+}
+
+.topbar-eyebrow {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: #f0b64c;
+  margin-bottom: 2px;
+}
+
+/* 机型卡片：磨砂玻璃 */
+.plan-page .aircraft-card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.plan-page .aircraft-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #f0b64c;
+}
+
+.plan-page .aircraft-change {
+  color: #f0b64c;
+}
+
+.plan-page .aircraft-img,
+.plan-page .aircraft-option img,
+.plan-page .aircraft-info-img {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 可规划时长摘要卡 */
+.plan-page .card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.plan-page .fuel-line {
+  color: #8e8e93;
+}
+
+.plan-page .fuel-line strong {
+  color: #f0b64c;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-page .fuel-summary.is-overflow {
+  border-color: rgba(255, 69, 58, 0.5);
+}
+
+.plan-page .fuel-line.danger,
+.plan-page .fuel-line.danger strong {
+  color: #ff453a;
+}
+
+/* 任务池卡片 */
+.plan-page .pool-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.plan-page .pool-card.is-new {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.plan-page .pool-card.is-fixed {
+  border-color: rgba(240, 182, 76, 0.35);
+}
+
+.plan-page .badge {
+  background: rgba(240, 182, 76, 0.16);
+  color: #f0b64c;
+}
+
+.plan-page .pool-name {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.plan-page .pool-name::placeholder {
+  color: #636366;
+}
+
+.plan-page .pool-locked {
+  color: #636366;
+}
+
+/* 步进器 */
+.plan-page .stepper-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* 按钮：主按钮 = 磨砂玻璃（同页面01主按钮），次按钮更淡 */
+.plan-page .btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.plan-page .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* 弹窗：深色磨砂（iOS 质感）；Modal 非 portal，可随页面作用域 */
+.plan-page .modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.plan-page .modal {
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.plan-page .aircraft-option {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.plan-page .aircraft-option.is-selected {
+  border-color: rgba(240, 182, 76, 0.6);
+  box-shadow: 0 0 0 1px rgba(240, 182, 76, 0.6);
+}
+
+.plan-page .aircraft-check {
+  color: #f0b64c;
+}
+
+.plan-page .aircraft-info-desc {
+  color: #8e8e93;
+}
+
+/* ---------- 页面03：任务顺序（D1 黑底 + 磨砂玻璃 + 琥珀点缀） ---------- */
+
+.order-page {
+  background: #000;
+}
+
+.order-page .card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.order-page .aircraft-img {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.order-page .order-total {
+  color: #8e8e93;
+}
+
+.order-page .route-hint {
+  color: #636366;
+}
+
+/* 任务胶囊：磨砂玻璃 */
+.order-page .route-item {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.order-page .route-item.mandatory {
+  border-color: rgba(240, 182, 76, 0.35);
+}
+
+.order-page .drag-item.dragging .route-item {
+  border-color: rgba(240, 182, 76, 0.6);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.6);
+}
+
+.order-page .drag-handle {
+  color: #636366;
+}
+
+.order-page .route-duration {
+  color: #8e8e93;
+}
+
+.order-page .badge {
+  background: rgba(240, 182, 76, 0.16);
+  color: #f0b64c;
+}
+
+/* 按钮：主按钮 = 磨砂玻璃，次按钮更淡 */
+.order-page .btn-primary {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+.order-page .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+}
+
 /* 页面09机型栏的徽章墙入口链接 */
 .badge-wall-link {
   display: block;
   width: 100%;
   margin-top: 12px;
   padding: 12px;
-  border: 1px dashed rgba(96, 165, 250, 0.45);
+  border: 1px dashed rgba(240, 182, 76, 0.45);
   border-radius: 12px;
-  background: rgba(96, 165, 250, 0.08);
-  color: #7ab3f8;
+  background: rgba(240, 182, 76, 0.08);
+  color: #f0b64c;
   font-size: 0.92rem;
   cursor: pointer;
 }
 
 .badge-wall-link:hover {
-  background: rgba(96, 165, 250, 0.14);
+  background: rgba(240, 182, 76, 0.14);
 }
 
 /* 页面11：徽章墙头部 */
@@ -1332,18 +2166,17 @@ button {
 
 /* 素材为黑底圆形奖章图，border-radius 裁圆后融入深色 UI */
 .badge-img {
-  border-radius: 50%;
+  border-radius: 0;
+  object-fit: contain;
+  background: transparent;
   vertical-align: middle;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.18),
-    0 2px 10px rgba(0, 0, 0, 0.45);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
   user-select: none;
 }
 
 .badge-img.is-locked {
-  filter: grayscale(1) brightness(0.6);
-  opacity: 0.4;
-  box-shadow: none;
+  filter: grayscale(1) brightness(0.55);
+  opacity: 0.45;
 }
 
 /* 行内小徽章（执飞各页标题旁） */
@@ -1430,7 +2263,7 @@ button {
 .badge-celebration-text {
   font-size: 1.05rem;
   font-weight: 600;
-  color: #fbbf24;
+  color: #f0b64c;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
 }
 
@@ -1446,4 +2279,85 @@ button {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* ---------- UI 试验台 ---------- */
+
+.lab-card {
+  margin-bottom: 16px;
+}
+
+.lab-row {
+  margin-bottom: 14px;
+}
+
+.lab-row:last-child {
+  margin-bottom: 0;
+}
+
+.lab-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+  font-size: 0.92rem;
+}
+
+.lab-value {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+}
+
+.lab-slider {
+  width: 100%;
+  accent-color: var(--accent);
+  min-height: 32px;
+}
+
+.lab-preview-title {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.lab-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.lab-preview .btn-block {
+  align-self: stretch;
+}
+
+.lab-export {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 设置页底部的试验台入口（低调） */
+.lab-entry {
+  display: block;
+  margin: 28px auto 0;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.lab-entry:hover {
+  color: var(--text-muted);
 }

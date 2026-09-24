@@ -46,10 +46,10 @@ export function NextTakeoffPage() {
   };
 
   return (
-    <div className="fullscreen-page">
-      <SkyBackground image="/assets/bg-cockpit.png" dim={0.55} />
+    <div className="fullscreen-page next-takeoff-page">
+      <SkyBackground image="/assets/bg-cockpit.png" dim={0.5} />
       <div className="fullscreen-content next-page">
-        <p className="page-step">下一项执飞任务</p>
+        <p className="topbar-eyebrow">下一项执飞任务</p>
         <h1 className="next-task-title">{next.title}</h1>
         <p className="next-task-duration">{next.remainingBudgetMinutes} 分钟</p>
         {(() => {
@@ -62,7 +62,7 @@ export function NextTakeoffPage() {
         })()}
 
         <button className="btn btn-primary btn-lg btn-block" onClick={() => void handleTakeoff()}>
-          准备好了，起飞 🛫
+          准备好了，起飞
         </button>
 
         <button className="cancel-voyage-btn" onClick={() => setEndOpen(true)}>
@@ -72,9 +72,7 @@ export function NextTakeoffPage() {
 
       <Modal open={endOpen} onClose={() => setEndOpen(false)}>
         <h2>提前结束航程？</h2>
-        <p style={{ color: 'var(--text-muted)' }}>
-          剩下的任务将标记为未完成，直接进入今日摘要。
-        </p>
+        <p>剩下的任务将标记为未完成，直接进入今日摘要。</p>
         <div className="btn-row">
           <button className="btn btn-secondary" onClick={() => setEndOpen(false)}>
             继续执飞

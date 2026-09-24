@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { SkyBackground } from '@/components/SkyBackground';
@@ -7,9 +7,10 @@ import { Modal } from '@/components/Modal';
 import { Badge } from '@/components/Badge';
 import { getHighestTier } from '@/lib/badges';
 import { SOUND_OPTIONS, VIEW_OPTIONS } from '@/lib/defaults';
+import { flyBackground } from '@/lib/aircraftMedia';
 import { audioManager } from '@/lib/audio';
 import { getDrainInfo } from '@/lib/sessionLogic';
-import { getBlockOvertimeMinutes, getBlockRemainingMinutes, roundMinutes } from '@/lib/time';
+import { formatDuration, getBlockOvertimeMinutes, getBlockRemainingMinutes, roundMinutes } from '@/lib/time';
 import type { SoundType, ViewType } from '@/types';
 
 /** 页面05：执飞过程页 */
@@ -80,17 +81,19 @@ export function FlyPage() {
     [block, blocks, session],
   );
 
-  // 锁屏媒体卡片：同步任务名与剩余分钟（分钟变化时更新；
-  // 页面隐藏后 JS 计时器被系统节流为分钟级，与锁屏卡片刷新粒度正好一致）
-  const lastMetaMinute = useRef(-1);
-  const metaMinute = block ? Math.max(0, Math.ceil(getBlockRemainingMinutes(block, now))) : null;
+  // 锁屏媒体卡片：每秒把剩余时间写成 MM:SS。锁屏后脚本会被系统节流，卡片按系统允许的频率更新。
   useEffect(() => {
-    if (!block || metaMinute === null) return;
-    if (metaMinute !== lastMetaMinute.current) {
-      lastMetaMinute.current = metaMinute;
-      audioManager.setTaskInfo(block.title, metaMinute);
-    }
-  }, [block, metaMinute]);
+    if (!block) return;
+    const budgetMin = roundMinutes(block.activeBudgetMinutes ?? block.remainingBudgetMinutes);
+    const budgetSec = Math.max(1, budgetMin * 60);
+    const elapsed = block.startedAt
+      ? Math.max(0, Math.floor((now - new Date(block.startedAt).getTime()) / 1000))
+      : 0;
+    const remain = Math.max(0, budgetSec - elapsed);
+    const overtime = elapsed > budgetSec;
+    const label = overtime ? `+${formatDuration(elapsed - budgetSec)}` : formatDuration(remain);
+    audioManager.setTaskInfo(block.title, label);
+  }, [block, now]);
 
   if (!block || !session) return null;
 
@@ -104,7 +107,7 @@ export function FlyPage() {
 
   const aircraft =
     settings.aircrafts.find((a) => a.id === session.aircraftId) ?? settings.aircrafts[0];
-  const bgImage = settings.viewType === 'wing' ? '/assets/bg-wing.png' : '/assets/bg-cockpit.png';
+  const bg = flyBackground(session.aircraftId, settings.viewType);
   // 当前机型已获得的最高徽章（航班号旁的小装饰）
   const topTier = getHighestTier(settings.stats, session.aircraftId);
 
@@ -141,8 +144,8 @@ export function FlyPage() {
   };
 
   return (
-    <div className="fullscreen-page">
-      <SkyBackground image={bgImage} dim={0.42} />
+    <div className="fullscreen-page fly-page">
+      <SkyBackground image={bg.image} videoSrc={bg.videoSrc} dim={0.42} />
 
       <div className="fly-topbar">
         <div className="fly-topbar-group">
@@ -205,7 +208,7 @@ export function FlyPage() {
             {block.markedIncomplete ? '取消「未完成」标记' : '未完成'}
           </button>
           <button className="btn btn-primary btn-lg" onClick={() => void handleLand()}>
-            进港 🛬
+            进港
           </button>
         </div>
       </div>

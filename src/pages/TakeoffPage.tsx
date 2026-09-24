@@ -14,6 +14,10 @@ export function TakeoffPage() {
   const unlocked = useRef(false);
 
   useEffect(() => {
+    audioManager.prepareBackground(settings.soundType);
+  }, [settings.soundType]);
+
+  useEffect(() => {
     if (!session) navigate('/start', { replace: true });
     else if (session.status === 'flying' && session.currentBlockId) {
       navigate(`/fly/${session.currentBlockId}`, { replace: true });
@@ -28,20 +32,17 @@ export function TakeoffPage() {
     settings.aircrafts.find((a) => a.id === session.aircraftId) ?? settings.aircrafts[0];
   const topTier = getHighestTier(settings.stats, session.aircraftId);
 
-  const handleProgress = (p: number) => {
-    // 推油门是用户手势：在此解锁音频，并让引擎声随推杆渐强
+  const handleProgress = () => {
+    // 推杆手势只解锁音频通道，让档位咔哒能响；不播引擎轰鸣
     if (!unlocked.current) {
       unlocked.current = true;
       audioManager.unlock();
-      audioManager.setVolume(settings.soundVolume * 0.5);
-      audioManager.play('engine');
-    }
-    if (p >= 0.995) {
-      audioManager.setVolume(settings.soundVolume);
     }
   };
 
   const handleComplete = async () => {
+    audioManager.setVolume(settings.soundVolume);
+    await audioManager.playBoarding();
     const started = await startFirstBlock();
     if (started) {
       navigate(`/fly/${started.id}`, { replace: true });
@@ -49,10 +50,11 @@ export function TakeoffPage() {
   };
 
   return (
-    <div className="fullscreen-page">
+    <div className="fullscreen-page takeoff-page">
       <SkyBackground image="/assets/bg-cockpit.png" dim={0.45} />
       <div className="fullscreen-content">
         <div className="takeoff-header">
+          <p className="topbar-eyebrow">CLEARED FOR TAKEOFF</p>
           <h1>准备起飞</h1>
           <p className="takeoff-aircraft badge-inline">
             {topTier && <Badge aircraftId={session.aircraftId} tier={topTier} size={20} />}

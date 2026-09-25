@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { audioManager } from '@/lib/audio';
 
-/** 推杆行程占底座图高度的比例（源图握把顶 y=556 → 轨道顶 ~200，990 高） */
-const TRAVEL_RATIO = 0.36;
+/** 推杆行程占底座图高度的比例（源图握把顶 y=556 → 轨道顶 ~200，970 高） */
+const TRAVEL_RATIO = 0.367;
 /** 推过 90% 即视为起飞：真实手指很难精确停在 100% */
 const COMPLETE_THRESHOLD = 0.9;
 /** 每 10% 一个机械档位，跨档时给段落感反馈 */

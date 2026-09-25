@@ -8,8 +8,8 @@ from PIL import Image, ImageFilter
 SRC = "UI Design/assets/throttle-pedestal-source.jpg"
 OUT_LEVER = "public/assets/throttle/lever.png"
 
-# Crop off the 豆包 watermark along the bottom edge
-CROP_BOTTOM = 990
+# Crop off the 豆包 watermark along the bottom edge (glyphs start ~y=981)
+CROP_BOTTOM = 970
 
 # Two A/T DISC knobs (rounded rectangles), source coordinates before crop
 KNOBS = [

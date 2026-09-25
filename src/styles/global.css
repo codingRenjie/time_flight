@@ -749,8 +749,8 @@ button {
 
 .throttle-stage {
   position: relative;
-  width: min(100%, calc((100dvh - 220px) * 815 / 990), 420px);
-  aspect-ratio: 815 / 990;
+  width: min(100%, calc((100dvh - 220px) * 815 / 970), 420px);
+  aspect-ratio: 815 / 970;
   touch-action: none;
   cursor: grab;
   user-select: none;

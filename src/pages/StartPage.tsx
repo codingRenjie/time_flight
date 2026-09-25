@@ -72,7 +72,7 @@ export function StartPage() {
         <img className="start-mark" src="/assets/logo-mark.png" alt="" />
         <h1 className="start-title-cn">时光机长</h1>
         <div className="start-title-en">TIME PILOT</div>
-        <p className="page-subtitle">今晚的航程，从这里开始</p>
+        <p className="page-subtitle">选择一段专注的时间，规划你的航程</p>
       </div>
 
       <div className="card">
